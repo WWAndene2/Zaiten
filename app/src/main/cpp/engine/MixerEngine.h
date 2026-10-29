@@ -38,6 +38,9 @@ private:
         std::atomic<int> uid{-1};
         std::atomic<bool> active{false};
         std::atomic<float> gain{1.0f};
+        // Dernier gain réellement appliqué, point de départ de la rampe ; lu et écrit par le seul
+        // callback, sauf à l'attribution du slot, quand la piste est encore inactive.
+        float appliedGain = 1.0f;
         // ~170 ms : marge contre les à-coups du thread de capture.
         SpscRingBuffer<int16_t> queue{8192 * kChannels};
     };

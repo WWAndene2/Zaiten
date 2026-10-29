@@ -1,6 +1,7 @@
 package com.zaiten.mixer.features.mixer
 
 import android.content.Intent
+import android.net.Uri
 import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -10,13 +11,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
@@ -42,7 +40,6 @@ import com.zaiten.mixer.core.mixer.OriginalSoundMode
 // Dimensions alignées sur l'échelle du design system (CLAUDE.md §7).
 private val Gutter = 16.dp
 private val Gap = 8.dp
-private val StripWidth = 96.dp
 
 @Composable
 fun MixerScreen(capturing: Boolean, onStartCapture: () -> Unit) {
@@ -63,9 +60,13 @@ fun MixerScreen(capturing: Boolean, onStartCapture: () -> Unit) {
                 Text("Applis actives", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                 TextButton(onClick = { picking = true }) { Text("Ajouter") }
             }
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(Gap)) {
-                items(tracks, key = { it.uid }) { track -> TrackStrip(track) }
-            }
+            TrackStripRow(
+                tracks = tracks,
+                onVolumeChange = MixerRepository::setVolume,
+                onToggleMute = MixerRepository::toggleMute,
+                onToggleSolo = MixerRepository::toggleSolo,
+                onRemove = MixerRepository::removeTrack,
+            )
         }
     }
     if (picking) AppPickerDialog(onDismiss = { picking = false })
@@ -85,30 +86,6 @@ private fun PercentSlider(label: String, percent: Int, onChange: (Int) -> Unit) 
         )
         if (percent > VolumeRange.WARNING_PERCENT) {
             Text("Au-delà de 150 % : risque pour l'audition", style = MaterialTheme.typography.bodySmall)
-        }
-    }
-}
-
-@Composable
-private fun TrackStrip(track: AppTrack) {
-    Surface(tonalElevation = 2.dp, shape = MaterialTheme.shapes.medium) {
-        Column(
-            modifier = Modifier.width(StripWidth).padding(Gap),
-            horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(Gap),
-        ) {
-            Text(track.label, maxLines = 1, style = MaterialTheme.typography.labelMedium)
-            Text("${track.volumePercent} %")
-            Slider(
-                value = track.volumePercent.toFloat(),
-                onValueChange = { MixerRepository.setVolume(track.uid, it.toInt()) },
-                valueRange = VolumeRange.MIN_PERCENT.toFloat()..VolumeRange.MAX_PERCENT.toFloat(),
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(Gap / 2)) {
-                FilterChip(selected = track.muted, onClick = { MixerRepository.toggleMute(track.uid) }, label = { Text("M") })
-                FilterChip(selected = track.solo, onClick = { MixerRepository.toggleSolo(track.uid) }, label = { Text("S") })
-            }
-            TextButton(onClick = { MixerRepository.removeTrack(track.uid) }) { Text("Retirer") }
         }
     }
 }
@@ -145,13 +122,24 @@ private fun SessionAccessPrompt() {
     if (granted) return
     Column(verticalArrangement = Arrangement.spacedBy(Gap)) {
         Text(
-            "Autorisez l'accès aux notifications pour ajouter automatiquement les applis qui jouent du son. " +
-                "Relancez ensuite la capture.",
+            "Autorisez l'accès aux notifications pour ajouter automatiquement les applis qui jouent du son.",
             style = MaterialTheme.typography.bodySmall,
         )
         TextButton(onClick = {
             context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
         }) { Text("Autoriser") }
+        // Android 13+ grise cet accès pour les applis installées hors Play Store (« paramètre
+        // restreint ») : il faut d'abord l'autoriser depuis la fiche de l'appli.
+        Text(
+            "Option grisée ? Ouvrez la fiche de l'appli, menu ⋮ en haut à droite, " +
+                "« Autoriser les paramètres restreints », puis revenez ici.",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        TextButton(onClick = {
+            context.startActivity(
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null)),
+            )
+        }) { Text("Ouvrir la fiche de l'appli") }
     }
 }
 

@@ -44,6 +44,12 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        // L'accès aux notifications s'accorde hors de l'appli : on relance la détection au retour.
+        if (capturing.value) AudioCaptureService.refreshSessions(this)
+    }
+
     private fun requestCapture() {
         val permissions = buildList {
             add(Manifest.permission.RECORD_AUDIO)

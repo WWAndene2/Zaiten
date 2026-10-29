@@ -24,6 +24,12 @@ static void limiterStaysBelowFullScale() {
     assert(dsp::softLimit(-boosted) == -limited);
 }
 
+static void gainRampReachesTargetWithoutJump() {
+    assert(dsp::rampGain(1.0f, 0.0f, 3, 4) == 0.0f);         // Dernière image : cible atteinte.
+    assert(std::fabs(dsp::rampGain(1.0f, 0.0f, 0, 4) - 0.75f) < 1e-6f);  // Première : un quart du chemin.
+    assert(dsp::rampGain(0.5f, 0.5f, 0, 4) == 0.5f);         // Gain stable : inchangé.
+}
+
 static void ringBufferKeepsOrderAndBounds() {
     SpscRingBuffer<int16_t> q(4);
     int16_t in[] = {1, 2, 3, 4, 5};
@@ -39,6 +45,7 @@ int main() {
     percentIsClamped();
     limiterIsTransparentBelowThreshold();
     limiterStaysBelowFullScale();
+    gainRampReachesTargetWithoutJump();
     ringBufferKeepsOrderAndBounds();
     std::puts("dsp_tests: OK");
     return 0;

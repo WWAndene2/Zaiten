@@ -71,6 +71,7 @@ MixerEngine::Track* MixerEngine::findOrAdd(int uid) {
             // slot est inactif, le callback ne le lit donc pas pendant cette remise à zéro.
             t.queue.skip(t.queue.size());
             t.uid.store(uid);
+            t.appliedGain = t.gain.load();
             t.active.store(true);
             return &t;
         }
@@ -102,15 +103,22 @@ oboe::DataCallbackResult MixerEngine::onAudioReady(oboe::AudioStream*, void* aud
         if (queuedFrames > kMaxQueuedFrames + numFrames) {
             t.queue.skip((queuedFrames - kMaxQueuedFrames - numFrames) * kChannels);
         }
-        const float gain = t.gain.load(std::memory_order_relaxed);
+        const float from = t.appliedGain;
+        const float to = t.gain.load(std::memory_order_relaxed);
+        const size_t frames = static_cast<size_t>(numFrames);
         size_t done = 0;
         while (done < samples) {
             size_t chunk = std::min(samples - done, scratch_.size());
             size_t read = t.queue.read(scratch_.data(), chunk);
-            for (size_t i = 0; i < read; ++i) out[done + i] += dsp::int16ToFloat(scratch_[i]) * gain;
+            for (size_t i = 0; i < read; ++i) {
+                size_t sample = done + i;
+                float gain = dsp::rampGain(from, to, sample / kChannels, frames);
+                out[sample] += dsp::int16ToFloat(scratch_[i]) * gain;
+            }
             if (read < chunk) break;  // File vide : le reste de la piste est du silence.
             done += read;
         }
+        t.appliedGain = to;
     }
 
     for (size_t i = 0; i < samples; ++i) out[i] = dsp::softLimit(out[i]);

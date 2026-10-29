@@ -40,6 +40,11 @@ class AudioCaptureService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startInForeground()
+        if (intent?.action == ACTION_REFRESH_SESSIONS) {
+            sessionWatcher?.stop()
+            sessionWatcher = ActiveSessionWatcher(this).also { it.start() }
+            return START_NOT_STICKY
+        }
         val resultData = intent?.let { IntentCompat.getParcelableExtra(it, EXTRA_DATA, Intent::class.java) }
         if (projection == null && resultData != null) {
             val manager = getSystemService(MediaProjectionManager::class.java)
@@ -103,6 +108,13 @@ class AudioCaptureService : Service() {
         private const val CHANNEL_ID = "mixer"
         private const val NOTIFICATION_ID = 1
         private const val EXTRA_DATA = "projection_data"
+
+        private const val ACTION_REFRESH_SESSIONS = "com.zaiten.mixer.REFRESH_SESSIONS"
+
+        /** Relance la détection des applis, par exemple après l'octroi de l'accès aux notifications. */
+        fun refreshSessions(context: Context) {
+            context.startService(Intent(context, AudioCaptureService::class.java).setAction(ACTION_REFRESH_SESSIONS))
+        }
 
         fun start(context: Context, projectionData: Intent) {
             context.startForegroundService(
