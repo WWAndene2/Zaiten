@@ -137,12 +137,18 @@ Simulation d'un son 3D sur un contenu qui n'en a pas.
 
 ## 6. Étapes proposées
 
-1. Prototype : capture multi-applis et volume par appli.
-2. Split G/D, boost jusqu'à 200 %, notification.
-3. Égaliseur et presets.
-4. Spatialisation 3D.
-5. Son simultané Cast et casque.
-6. Fonctions bonus.
+Ordre d'implémentation : chaque étape ne dépend que des précédentes.
+
+1. **Socle technique** : projet Kotlin, service de premier plan, notification obligatoire, autorisation de capture (§5). Sans eux, aucune capture n'est possible.
+2. **Prototype de capture** : capture par appli, volume de 0 à 200 % avec limiteur, muet et solo (§2.1, §2.5). Valide la faisabilité : l'appli capturée continue de jouer le son d'origine.
+3. **Moteur audio C++ (Oboe)** : passage du traitement en natif pour tenir la latence de 40 ms, avant d'empiler des effets.
+4. **Table de mixage et routage** : vue en tranches (§7.3), règles par appli enregistrées et réappliquées (§7.1).
+5. **Split G/D** : canal, balance et mono (§2.2).
+6. **Notification, tuiles et widget** (§2.6) : ils pilotent un état devenu stable.
+7. **Chaîne de traitement et presets** : égaliseur, compresseur, limiteur, presets (§2.4, §7.2, §7.4).
+8. **Spatialisation 3D** (§3) : se branche à son étage de la chaîne.
+9. **Son simultané Cast et casque** (§2.3) : la plus risquée, sur un moteur et une chaîne déjà éprouvés.
+10. **Fonctions bonus** (§4).
 
 ## 7. Gestion du son en détail
 
