@@ -73,6 +73,19 @@ class ActiveSessionWatcher(private val context: Context) {
     }
 
     companion object {
+        private var instance: ActiveSessionWatcher? = null
+
+        /**
+         * Démarre (ou relance) la détection, indépendamment de la capture : les applis apparaissent
+         * dans le mixeur dès l'ouverture. Appelé au lancement et à chaque retour dans l'appli, car
+         * l'accès aux notifications s'accorde dans les réglages d'Android.
+         */
+        fun refresh(context: Context) {
+            val app = context.applicationContext
+            if (instance != null || !hasAccess(app)) return
+            instance = ActiveSessionWatcher(app).also { it.start() }
+        }
+
         fun hasAccess(context: Context): Boolean =
             context.packageName in NotificationManagerCompat.getEnabledListenerPackages(context)
     }

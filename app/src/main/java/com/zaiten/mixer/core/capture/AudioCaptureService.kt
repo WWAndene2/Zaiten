@@ -35,18 +35,12 @@ class AudioCaptureService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var projection: MediaProjection? = null
     private val captures = mutableMapOf<Int, AppCaptureTrack>()
-    private var sessionWatcher: ActiveSessionWatcher? = null
     private var originalMuter: OriginalMuter? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startInForeground()
-        if (intent?.action == ACTION_REFRESH_SESSIONS) {
-            sessionWatcher?.stop()
-            sessionWatcher = ActiveSessionWatcher(this).also { it.start() }
-            return START_NOT_STICKY
-        }
         val resultData = intent?.let { IntentCompat.getParcelableExtra(it, EXTRA_DATA, Intent::class.java) }
         if (projection == null && resultData != null) {
             val manager = getSystemService(MediaProjectionManager::class.java)
@@ -56,7 +50,6 @@ class AudioCaptureService : Service() {
             observeEffects()
             observeTracks()
             observeNotification()
-            sessionWatcher = ActiveSessionWatcher(this).also { it.start() }
             val muter = OriginalMuter(getSystemService(AudioManager::class.java), ::lastSoundAt)
             originalMuter = muter
             scope.launch { muter.run() }
@@ -106,7 +99,6 @@ class AudioCaptureService : Service() {
 
     override fun onDestroy() {
         _running.value = false
-        sessionWatcher?.stop()
         originalMuter?.restore()
         synchronized(this) { captures.values.forEach { it.stop() }; captures.clear() }
         projection?.stop()
@@ -125,13 +117,6 @@ class AudioCaptureService : Service() {
         val running: StateFlow<Boolean> = _running
 
         private const val EXTRA_DATA = "projection_data"
-
-        private const val ACTION_REFRESH_SESSIONS = "com.zaiten.mixer.REFRESH_SESSIONS"
-
-        /** Relance la détection des applis, par exemple après l'octroi de l'accès aux notifications. */
-        fun refreshSessions(context: Context) {
-            context.startService(Intent(context, AudioCaptureService::class.java).setAction(ACTION_REFRESH_SESSIONS))
-        }
 
         fun start(context: Context, projectionData: Intent) {
             context.startForegroundService(

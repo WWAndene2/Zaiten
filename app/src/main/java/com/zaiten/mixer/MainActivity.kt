@@ -12,6 +12,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import com.zaiten.mixer.core.capture.ActiveSessionWatcher
 import com.zaiten.mixer.core.capture.AudioCaptureService
 
 class MainActivity : ComponentActivity() {
@@ -45,7 +46,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         // L'accès aux notifications s'accorde hors de l'appli : on relance la détection au retour.
-        if (AudioCaptureService.running.value) AudioCaptureService.refreshSessions(this)
+        ActiveSessionWatcher.refresh(this)
     }
 
     private fun requestCapture() {

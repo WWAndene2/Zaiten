@@ -64,8 +64,9 @@ fun MixerScreen(capturing: Boolean, onStartCapture: () -> Unit) {
                 // Android 14+ propose « Une seule appli » ou « Écran entier » : une seule appli
                 // limiterait la capture à celle-ci, alors que le mixeur doit entendre toutes les applis.
                 Text(
-                    "Android demande l'autorisation une fois par session. Choisissez « Écran entier » : " +
-                        "elle couvre alors toutes les applis jusqu'à l'arrêt de la capture.",
+                    "Les applis détectées s'affichent déjà ; la capture est ce qui permet de régler leur son. " +
+                        "Dans la fenêtre d'Android, passez « Ampleur » sur « Écran entier » (et non « Partager une appli ») : " +
+                        "une seule autorisation couvre alors toutes les applis jusqu'à l'arrêt.",
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
@@ -140,7 +141,7 @@ private fun SessionAccessPrompt() {
     if (granted) return
     Column(verticalArrangement = Arrangement.spacedBy(Gap)) {
         Text(
-            "Autorisez l'accès aux notifications pour ajouter automatiquement les applis qui jouent du son.",
+            "Autorisez l'accès aux notifications pour que les applis qui jouent du son apparaissent toutes seules.",
             style = MaterialTheme.typography.bodySmall,
         )
         TextButton(onClick = {
