@@ -89,7 +89,54 @@ static void monoSumsChannels() {
     assert(frame[0] == 0.2f && frame[1] == 0.2f);
 }
 
+static void spatializerOffIsTransparent() {
+    dsp::Spatializer s;
+    s.configure(0.0f, dsp::Room::Cinema);
+    float l = 0.3f, r = -0.1f;
+    s.process(l, r);
+    assert(l == 0.3f && r == -0.1f);
+}
+
+static void spatializerKeepsCenterSymmetric() {
+    // Sans pièce : la réverbération décorrèle volontairement G et D (décalage stéréo de Freeverb).
+    dsp::Spatializer s;
+    s.configure(1.0f, dsp::Room::None);
+    for (int i = 0; i < 4800; ++i) {
+        float x = 0.2f * std::sin(i * 0.05f);
+        float l = x, r = x;
+        s.process(l, r);
+        assert(std::fabs(l - r) < 1e-6f);  // Une voix au centre reste au centre.
+    }
+}
+
+static void reverbStaysBounded() {
+    dsp::Spatializer s;
+    s.configure(1.0f, dsp::Room::Cinema);
+    for (int i = 0; i < 48000; ++i) {
+        float x = 0.5f * std::sin(i * 0.05f);
+        float l = x, r = x;
+        s.process(l, r);
+        assert(std::fabs(l) < 1.5f && std::fabs(r) < 1.5f);  // Pas d'emballement ; le limiteur suit.
+    }
+}
+
+static void spatializerCrossfeedsLeftOnlySource() {
+    dsp::Spatializer s;
+    s.configure(1.0f, dsp::Room::None);
+    float energyRight = 0;
+    for (int i = 0; i < 480; ++i) {
+        float l = 0.5f * std::sin(i * 0.05f), r = 0.0f;
+        s.process(l, r);
+        energyRight += r * r;
+    }
+    assert(energyRight > 0.0f);  // Un son à gauche atteint l'oreille droite, comme avec des enceintes.
+}
+
 int main() {
+    spatializerOffIsTransparent();
+    spatializerKeepsCenterSymmetric();
+    reverbStaysBounded();
+    spatializerCrossfeedsLeftOnlySource();
     flatEqIsTransparent();
     eqBandBoostsItsFrequencyOnly();
     compressorReducesLoudSignal();

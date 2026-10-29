@@ -18,12 +18,14 @@ import com.zaiten.mixer.features.effects.EffectsScreen
 import com.zaiten.mixer.features.mixer.MixerScreen
 import com.zaiten.mixer.features.presets.PresetsScreen
 import com.zaiten.mixer.features.routing.RoutingScreen
+import com.zaiten.mixer.features.spatial.SpatialScreen
 
-/** Onglets de la maquette ; « 3D » s'ajoutera avec la spatialisation (étape 8). */
+/** Onglets de la maquette. */
 private enum class Tab(val label: String, val icon: Int) {
     MIXER("Mixeur", android.R.drawable.ic_lock_silent_mode_off),
     ROUTING("Routage", android.R.drawable.ic_menu_share),
     EFFECTS("Effets", android.R.drawable.ic_menu_manage),
+    SPATIAL("3D", android.R.drawable.ic_menu_compass),
     PRESETS("Presets", android.R.drawable.ic_menu_agenda),
 }
 
@@ -49,6 +51,7 @@ fun AppShell(capturing: Boolean, onStartCapture: () -> Unit) {
                 Tab.MIXER -> MixerScreen(capturing, onStartCapture)
                 Tab.ROUTING -> RoutingScreen()
                 Tab.EFFECTS -> EffectsScreen()
+                Tab.SPATIAL -> SpatialScreen()
                 Tab.PRESETS -> PresetsScreen()
             }
         }

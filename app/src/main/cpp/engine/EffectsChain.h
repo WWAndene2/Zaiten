@@ -5,6 +5,7 @@
 #include "Biquad.h"
 #include "Compressor.h"
 #include "Dsp.h"
+#include "Spatializer.h"
 
 namespace dsp {
 
@@ -19,9 +20,13 @@ struct EffectsParams {
     float compressorAmount = 0.0f;
     bool limiter = true;
     bool mono = false;
+    float spatialAmount = 0.0f;
+    Room room = Room::None;
 };
 
-// Étapes du mix final (§7.2, point 7) : égaliseur global, compresseur, mono, limiteur.
+// Étapes du mix final (§7.2, point 7) : égaliseur global, spatialisation, compresseur, mono, limiteur.
+// La spatialisation est appliquée au mix et non par appli comme le prévoit le §7.2 (point 5) :
+// placer chaque appli dans l'espace (§3.2, 3D par appli) demande un spatialiseur par piste.
 class EffectsChain {
 public:
     void configure(const EffectsParams& params, float sampleRate) {
@@ -34,6 +39,7 @@ public:
             coefficients_[b] = BiquadCoefficients::peaking(kEqFrequencies[b], params.eqDb[b], kEqQ, sampleRate);
         }
         compressor_.configure(params.compressorAmount, sampleRate);
+        spatializer_.configure(params.spatialAmount, params.room);
     }
 
     // Traite des images stéréo entrelacées, en place.
@@ -46,6 +52,7 @@ public:
                 l = left_[b].process(coefficients_[b], l);
                 r = right_[b].process(coefficients_[b], r);
             }
+            spatializer_.process(l, r);
             float g = compressor_.gainFor(l, r);
             l *= g;
             r *= g;
@@ -66,6 +73,7 @@ private:
     std::array<BiquadCoefficients, kEqBands> coefficients_{};
     std::array<BiquadState, kEqBands> left_{}, right_{};
     Compressor compressor_;
+    Spatializer spatializer_;
 };
 
 }  // namespace dsp

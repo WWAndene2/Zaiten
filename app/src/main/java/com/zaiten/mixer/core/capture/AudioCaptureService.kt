@@ -13,6 +13,7 @@ import android.os.IBinder
 import androidx.core.content.IntentCompat
 import com.zaiten.mixer.core.control.MixerNotification
 import com.zaiten.mixer.core.effects.EffectsRepository
+import com.zaiten.mixer.core.engine.HeadphoneMonitor
 import com.zaiten.mixer.core.engine.NativeMixerEngine
 import com.zaiten.mixer.core.mixer.MixerRepository
 import kotlinx.coroutines.CoroutineScope
@@ -61,8 +62,8 @@ class AudioCaptureService : Service() {
     }
 
     private fun observeEffects() = scope.launch {
-        EffectsRepository.settings.collect { settings ->
-            NativeMixerEngine.setEffects(settings)
+        combine(EffectsRepository.settings, HeadphoneMonitor.connected, ::Pair).collect { (settings, headphones) ->
+            NativeMixerEngine.setEffects(settings, spatialAllowed = headphones)
             MixerRepository.setMasterCap(settings.masterCapPercent)
         }
     }

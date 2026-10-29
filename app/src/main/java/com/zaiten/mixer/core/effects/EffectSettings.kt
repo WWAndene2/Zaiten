@@ -10,6 +10,9 @@ data class EffectSettings(
     val mono: Boolean = false,
     /** Plafond du volume maître (preset Nuit) ; 200 = pas de plafond. */
     val masterCapPercent: Int = 200,
+    /** Intensité de la spatialisation (§3.2) : 0 = arrêt, faible = stéréo élargi, 1 = 3D complet. */
+    val spatial: Float = 0f,
+    val room: Room = Room.LIVING_ROOM,
 ) {
     companion object {
         /** Doit correspondre à dsp::kEqFrequencies côté natif. */
@@ -17,6 +20,11 @@ data class EffectSettings(
         const val EQ_MIN_DB = -12f
         const val EQ_MAX_DB = 12f
     }
+}
+
+/** Pièce virtuelle (§3.2) ; l'ordre doit correspondre à dsp::Room côté natif. */
+enum class Room(val label: String) {
+    NONE("Sans pièce"), SMALL("Petite salle"), LIVING_ROOM("Salon"), CINEMA("Cinéma"), OUTDOOR("Plein air"),
 }
 
 /** Un preset : un nom et des réglages, fourni (non supprimable) ou créé par l'utilisateur. */

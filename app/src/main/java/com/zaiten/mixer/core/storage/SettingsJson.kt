@@ -2,6 +2,7 @@ package com.zaiten.mixer.core.storage
 
 import com.zaiten.mixer.core.effects.EffectSettings
 import com.zaiten.mixer.core.effects.Preset
+import com.zaiten.mixer.core.effects.Room
 import com.zaiten.mixer.core.mixer.Channel
 import com.zaiten.mixer.core.mixer.TrackRule
 import org.json.JSONArray
@@ -18,6 +19,8 @@ object SettingsJson {
         .put("limiter", s.limiter)
         .put("mono", s.mono)
         .put("masterCapPercent", s.masterCapPercent)
+        .put("spatial", s.spatial.toDouble())
+        .put("room", s.room.name)
 
     fun settingsFromJson(o: JSONObject): EffectSettings {
         val defaults = EffectSettings()
@@ -28,6 +31,8 @@ object SettingsJson {
             limiter = o.optBoolean("limiter", true),
             mono = o.optBoolean("mono", false),
             masterCapPercent = o.optInt("masterCapPercent", defaults.masterCapPercent),
+            spatial = o.optDouble("spatial", 0.0).toFloat(),
+            room = runCatching { Room.valueOf(o.optString("room")) }.getOrDefault(defaults.room),
         )
     }
 

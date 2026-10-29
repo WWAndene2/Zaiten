@@ -36,13 +36,16 @@ JNIEXPORT void JNICALL
 Java_com_zaiten_mixer_core_engine_NativeMixerEngine_nativeSetEffects(JNIEnv* env, jobject,
                                                                     jfloatArray eqDb,
                                                                     jfloat compressorAmount,
-                                                                    jboolean limiter, jboolean mono) {
+                                                                    jboolean limiter, jboolean mono,
+                                                                    jfloat spatialAmount, jint room) {
     dsp::EffectsParams params;
     jsize bands = env->GetArrayLength(eqDb);
     env->GetFloatArrayRegion(eqDb, 0, bands < dsp::kEqBands ? bands : dsp::kEqBands, params.eqDb.data());
     params.compressorAmount = compressorAmount;
     params.limiter = limiter;
     params.mono = mono;
+    params.spatialAmount = spatialAmount;
+    params.room = static_cast<dsp::Room>(room);
     engine.setEffects(params);
 }
 

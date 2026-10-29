@@ -21,9 +21,18 @@ object NativeMixerEngine {
     /** Gains effectifs gauche/droite de la piste (muet, solo, maître, canal, balance), 0 à 200 %. */
     fun setGains(uid: Int, gains: ChannelGains) = nativeSetGains(uid, gains.left, gains.right)
 
-    /** Réglages du mix final : égaliseur, compresseur, limiteur, mono. */
-    fun setEffects(settings: EffectSettings) =
-        nativeSetEffects(settings.eqDb.toFloatArray(), settings.compressor, settings.limiter, settings.mono)
+    /**
+     * Réglages du mix final : égaliseur, spatialisation, compresseur, limiteur, mono.
+     * [spatialAllowed] faux (pas de casque) coupe la 3D, qui ne fonctionne qu'au casque (§3.3).
+     */
+    fun setEffects(settings: EffectSettings, spatialAllowed: Boolean) = nativeSetEffects(
+        settings.eqDb.toFloatArray(),
+        settings.compressor,
+        settings.limiter,
+        settings.mono,
+        if (spatialAllowed) settings.spatial else 0f,
+        settings.room.ordinal,
+    )
 
     fun removeTrack(uid: Int) = nativeRemoveTrack(uid)
 
@@ -31,6 +40,13 @@ object NativeMixerEngine {
     private external fun nativeStop()
     private external fun nativeWrite(uid: Int, samples: ShortArray, count: Int)
     private external fun nativeSetGains(uid: Int, left: Int, right: Int)
-    private external fun nativeSetEffects(eqDb: FloatArray, compressor: Float, limiter: Boolean, mono: Boolean)
+    private external fun nativeSetEffects(
+        eqDb: FloatArray,
+        compressor: Float,
+        limiter: Boolean,
+        mono: Boolean,
+        spatial: Float,
+        room: Int,
+    )
     private external fun nativeRemoveTrack(uid: Int)
 }

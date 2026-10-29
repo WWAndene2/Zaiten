@@ -45,6 +45,8 @@ object EffectsRepository {
     fun setCompressor(amount: Float) = edit { it.copy(compressor = amount.coerceIn(0f, 1f)) }
     fun setLimiter(enabled: Boolean) = edit { it.copy(limiter = enabled) }
     fun setMono(enabled: Boolean) = edit { it.copy(mono = enabled) }
+    fun setSpatial(amount: Float) = edit { it.copy(spatial = amount.coerceIn(0f, 1f)) }
+    fun setRoom(room: Room) = edit { it.copy(room = room) }
 
     /** Enregistre les réglages courants sous [name] ; remplace un preset personnel du même nom. */
     fun saveCurrentAs(name: String): Boolean {
