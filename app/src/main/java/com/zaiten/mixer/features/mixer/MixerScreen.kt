@@ -12,9 +12,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
@@ -32,6 +35,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.zaiten.mixer.core.capture.ActiveSessionWatcher
+import com.zaiten.mixer.core.effects.EffectsRepository
 import com.zaiten.mixer.core.mixer.AppTrack
 import com.zaiten.mixer.core.mixer.VolumeRange
 import com.zaiten.mixer.core.mixer.MixerRepository
@@ -48,7 +52,10 @@ fun MixerScreen(capturing: Boolean, onStartCapture: () -> Unit) {
     var picking by remember { mutableStateOf(false) }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(modifier = Modifier.padding(Gutter), verticalArrangement = Arrangement.spacedBy(Gutter)) {
+        Column(
+            modifier = Modifier.verticalScroll(rememberScrollState()).padding(Gutter),
+            verticalArrangement = Arrangement.spacedBy(Gutter),
+        ) {
             Text("Mixeur", style = MaterialTheme.typography.headlineMedium)
             if (!capturing) {
                 Button(onClick = onStartCapture) { Text("Démarrer la capture") }
@@ -56,6 +63,7 @@ fun MixerScreen(capturing: Boolean, onStartCapture: () -> Unit) {
             SessionAccessPrompt()
             if (capturing) OriginalSoundNotice()
             PercentSlider(label = "Volume maître", percent = master, onChange = MixerRepository::setMaster)
+            ActiveEffectsChips()
             Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                 Text("Applis actives", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                 TextButton(onClick = { picking = true }) { Text("Ajouter") }
@@ -154,4 +162,15 @@ private fun OriginalSoundNotice() {
                 "le volume d'une appli, mais pas le baisser."
     }
     Text(text, style = MaterialTheme.typography.bodySmall)
+}
+
+/** Raccourcis de la maquette sous le volume maître : preset suivant et limiteur. */
+@Composable
+private fun ActiveEffectsChips() {
+    val preset by EffectsRepository.activePreset.collectAsState()
+    val settings by EffectsRepository.settings.collectAsState()
+    Row(horizontalArrangement = Arrangement.spacedBy(Gap)) {
+        FilterChip(selected = preset != null, onClick = EffectsRepository::applyNext, label = { Text(preset ?: "Preset") })
+        FilterChip(selected = settings.limiter, onClick = { EffectsRepository.setLimiter(!settings.limiter) }, label = { Text("Limiteur") })
+    }
 }

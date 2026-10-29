@@ -15,6 +15,7 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.content.IntentCompat
 import com.zaiten.mixer.R
+import com.zaiten.mixer.core.effects.EffectsRepository
 import com.zaiten.mixer.core.engine.NativeMixerEngine
 import com.zaiten.mixer.core.mixer.MixerRepository
 import kotlinx.coroutines.CoroutineScope
@@ -50,6 +51,7 @@ class AudioCaptureService : Service() {
             val manager = getSystemService(MediaProjectionManager::class.java)
             projection = manager.getMediaProjection(Activity.RESULT_OK, resultData)
             NativeMixerEngine.start()
+            observeEffects()
             observeTracks()
             sessionWatcher = ActiveSessionWatcher(this).also { it.start() }
             val muter = OriginalMuter(getSystemService(AudioManager::class.java), ::lastSoundAt)
@@ -57,6 +59,13 @@ class AudioCaptureService : Service() {
             scope.launch { muter.run() }
         }
         return START_NOT_STICKY
+    }
+
+    private fun observeEffects() = scope.launch {
+        EffectsRepository.settings.collect { settings ->
+            NativeMixerEngine.setEffects(settings)
+            MixerRepository.setMasterCap(settings.masterCapPercent)
+        }
     }
 
     private fun observeTracks() = scope.launch {

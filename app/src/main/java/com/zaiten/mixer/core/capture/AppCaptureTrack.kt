@@ -59,7 +59,7 @@ class AppCaptureTrack(private val projection: MediaProjection, private val uid: 
                 val read = record.read(buffer, 0, buffer.size)
                 if (read <= 0) continue
                 if (isAudible(buffer, read)) lastSoundAtMs = SystemClock.elapsedRealtime()
-                NativeMixerEngine.setGain(uid, MixerRepository.currentPercent(uid))
+                NativeMixerEngine.setGains(uid, MixerRepository.currentGains(uid))
                 NativeMixerEngine.write(uid, buffer, read)
             }
             record.stop()

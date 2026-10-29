@@ -52,4 +52,6 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
     implementation("com.google.oboe:oboe:1.9.0")
     testImplementation("junit:junit:4.13.2")
+    // org.json d'Android n'est qu'un bouchon dans les tests JVM : implémentation réelle pour SettingsJsonTest.
+    testImplementation("org.json:json:20240303")
 }

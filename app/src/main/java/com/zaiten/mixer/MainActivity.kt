@@ -12,7 +12,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.mutableStateOf
 import com.zaiten.mixer.core.capture.AudioCaptureService
-import com.zaiten.mixer.features.mixer.MixerScreen
 
 class MainActivity : ComponentActivity() {
     private val capturing = mutableStateOf(false)
@@ -39,7 +38,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme(colorScheme = darkColorScheme()) {
-                MixerScreen(capturing = capturing.value, onStartCapture = ::requestCapture)
+                AppShell(capturing = capturing.value, onStartCapture = ::requestCapture)
             }
         }
     }

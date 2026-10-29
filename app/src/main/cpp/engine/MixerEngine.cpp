@@ -71,7 +71,8 @@ MixerEngine::Track* MixerEngine::findOrAdd(int uid) {
             // slot est inactif, le callback ne le lit donc pas pendant cette remise à zéro.
             t.queue.skip(t.queue.size());
             t.uid.store(uid);
-            t.appliedGain = t.gain.load();
+            t.appliedLeft = t.gainLeft.load();
+            t.appliedRight = t.gainRight.load();
             t.active.store(true);
             return &t;
         }
@@ -83,8 +84,17 @@ void MixerEngine::write(int uid, const int16_t* samples, int count) {
     if (Track* t = findOrAdd(uid)) t->queue.write(samples, static_cast<size_t>(count));
 }
 
-void MixerEngine::setGain(int uid, int percent) {
-    if (Track* t = findOrAdd(uid)) t->gain.store(dsp::clampPercent(percent) / 100.0f);
+void MixerEngine::setGains(int uid, int leftPercent, int rightPercent) {
+    if (Track* t = findOrAdd(uid)) {
+        t->gainLeft.store(dsp::clampPercent(leftPercent) / 100.0f);
+        t->gainRight.store(dsp::clampPercent(rightPercent) / 100.0f);
+    }
+}
+
+void MixerEngine::setEffects(const dsp::EffectsParams& params) {
+    std::lock_guard<std::mutex> lock(effectsMutex_);
+    pendingEffects_ = params;
+    effectsVersion_.fetch_add(1, std::memory_order_release);
 }
 
 void MixerEngine::removeTrack(int uid) {
@@ -103,8 +113,10 @@ oboe::DataCallbackResult MixerEngine::onAudioReady(oboe::AudioStream*, void* aud
         if (queuedFrames > kMaxQueuedFrames + numFrames) {
             t.queue.skip((queuedFrames - kMaxQueuedFrames - numFrames) * kChannels);
         }
-        const float from = t.appliedGain;
-        const float to = t.gain.load(std::memory_order_relaxed);
+        const float fromLeft = t.appliedLeft;
+        const float fromRight = t.appliedRight;
+        const float toLeft = t.gainLeft.load(std::memory_order_relaxed);
+        const float toRight = t.gainRight.load(std::memory_order_relaxed);
         const size_t frames = static_cast<size_t>(numFrames);
         size_t done = 0;
         while (done < samples) {
@@ -112,15 +124,24 @@ oboe::DataCallbackResult MixerEngine::onAudioReady(oboe::AudioStream*, void* aud
             size_t read = t.queue.read(scratch_.data(), chunk);
             for (size_t i = 0; i < read; ++i) {
                 size_t sample = done + i;
-                float gain = dsp::rampGain(from, to, sample / kChannels, frames);
+                bool left = sample % kChannels == 0;
+                float gain = left ? dsp::rampGain(fromLeft, toLeft, sample / kChannels, frames)
+                                  : dsp::rampGain(fromRight, toRight, sample / kChannels, frames);
                 out[sample] += dsp::int16ToFloat(scratch_[i]) * gain;
             }
             if (read < chunk) break;  // File vide : le reste de la piste est du silence.
             done += read;
         }
-        t.appliedGain = to;
+        t.appliedLeft = toLeft;
+        t.appliedRight = toRight;
     }
 
-    for (size_t i = 0; i < samples; ++i) out[i] = dsp::softLimit(out[i]);
+    int version = effectsVersion_.load(std::memory_order_acquire);
+    if (version != appliedEffectsVersion_ && effectsMutex_.try_lock()) {
+        effects_.configure(pendingEffects_, kSampleRate);
+        appliedEffectsVersion_ = version;
+        effectsMutex_.unlock();
+    }
+    effects_.process(out, numFrames);
     return oboe::DataCallbackResult::Continue;
 }

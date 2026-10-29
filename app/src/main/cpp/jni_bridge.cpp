@@ -27,9 +27,23 @@ Java_com_zaiten_mixer_core_engine_NativeMixerEngine_nativeWrite(JNIEnv* env, job
 }
 
 JNIEXPORT void JNICALL
-Java_com_zaiten_mixer_core_engine_NativeMixerEngine_nativeSetGain(JNIEnv*, jobject, jint uid,
-                                                                 jint percent) {
-    engine.setGain(uid, percent);
+Java_com_zaiten_mixer_core_engine_NativeMixerEngine_nativeSetGains(JNIEnv*, jobject, jint uid,
+                                                                  jint left, jint right) {
+    engine.setGains(uid, left, right);
+}
+
+JNIEXPORT void JNICALL
+Java_com_zaiten_mixer_core_engine_NativeMixerEngine_nativeSetEffects(JNIEnv* env, jobject,
+                                                                    jfloatArray eqDb,
+                                                                    jfloat compressorAmount,
+                                                                    jboolean limiter, jboolean mono) {
+    dsp::EffectsParams params;
+    jsize bands = env->GetArrayLength(eqDb);
+    env->GetFloatArrayRegion(eqDb, 0, bands < dsp::kEqBands ? bands : dsp::kEqBands, params.eqDb.data());
+    params.compressorAmount = compressorAmount;
+    params.limiter = limiter;
+    params.mono = mono;
+    engine.setEffects(params);
 }
 
 JNIEXPORT void JNICALL

@@ -15,6 +15,7 @@
     </queries>
 
     <application
+        android:name=".ZaitenApp"
         android:label="@string/app_name"
         android:theme="@android:style/Theme.Material.NoActionBar">
 

@@ -3,6 +3,7 @@
 #include <cstdio>
 
 #include "Dsp.h"
+#include "EffectsChain.h"
 #include "SpscRingBuffer.h"
 
 static void percentIsClamped() {
@@ -41,7 +42,58 @@ static void ringBufferKeepsOrderAndBounds() {
     assert(q.size() == 0);
 }
 
+// Amplitude de sortie d'un sinus traité par la chaîne, une fois le régime établi.
+static float sineGain(const dsp::EffectsParams& params, float frequency) {
+    dsp::EffectsChain chain;
+    chain.configure(params, 48000);
+    float peak = 0;
+    for (int f = 0; f < 48000; ++f) {
+        float x = 0.1f * std::sin(2.0f * static_cast<float>(M_PI) * frequency * f / 48000);
+        float frame[2] = {x, x};
+        chain.process(frame, 1);
+        if (f > 24000) peak = std::fmax(peak, std::fabs(frame[0]));
+    }
+    return peak / 0.1f;
+}
+
+static void flatEqIsTransparent() {
+    dsp::EffectsParams flat;
+    assert(std::fabs(sineGain(flat, 1000) - 1.0f) < 0.01f);
+}
+
+static void eqBandBoostsItsFrequencyOnly() {
+    dsp::EffectsParams p;
+    p.eqDb[5] = 6.0f;  // 1 kHz +6 dB (×2).
+    assert(std::fabs(sineGain(p, 1000) - 2.0f) < 0.1f);
+    assert(std::fabs(sineGain(p, 62) - 1.0f) < 0.05f);
+}
+
+static void compressorReducesLoudSignal() {
+    dsp::EffectsParams p;
+    p.limiter = false;
+    p.compressorAmount = 1.0f;
+    dsp::EffectsChain chain;
+    chain.configure(p, 48000);
+    float frame[2] = {};
+    for (int i = 0; i < 4800; ++i) { frame[0] = frame[1] = 0.9f; chain.process(frame, 1); }
+    assert(frame[0] < 0.9f);  // -1 dBFS soutenu : nettement réduit malgré le rattrapage.
+}
+
+static void monoSumsChannels() {
+    dsp::EffectsParams p;
+    p.mono = true;
+    dsp::EffectsChain chain;
+    chain.configure(p, 48000);
+    float frame[2] = {0.4f, 0.0f};
+    chain.process(frame, 1);
+    assert(frame[0] == 0.2f && frame[1] == 0.2f);
+}
+
 int main() {
+    flatEqIsTransparent();
+    eqBandBoostsItsFrequencyOnly();
+    compressorReducesLoudSignal();
+    monoSumsChannels();
     percentIsClamped();
     limiterIsTransparentBelowThreshold();
     limiterStaysBelowFullScale();
