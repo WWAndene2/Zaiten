@@ -10,6 +10,8 @@ data class TrackRule(
     val channel: Channel = Channel.BOTH,
     /** -100 (tout à gauche) à +100 (tout à droite). */
     val balance: Int = 0,
+    /** Prioritaire (§7.1) : quand elle joue, les autres applis baissent (ducking, §4). */
+    val priority: Boolean = false,
 )
 
 /** État d'une piste du mixeur : une appli identifiée par son UID Android. */
@@ -22,13 +24,22 @@ data class AppTrack(
     val solo: Boolean = false,
     val channel: Channel = Channel.BOTH,
     val balance: Int = 0,
+    val priority: Boolean = false,
 ) {
     // Solo n'est pas enregistré : c'est une écoute ponctuelle, pas une règle de l'appli.
-    fun rule() = TrackRule(volumePercent, muted, channel, balance)
+    fun rule() = TrackRule(volumePercent, muted, channel, balance, priority)
 
-    fun withRule(rule: TrackRule) =
-        copy(volumePercent = rule.volumePercent, muted = rule.muted, channel = rule.channel, balance = rule.balance)
+    fun withRule(rule: TrackRule) = copy(
+        volumePercent = rule.volumePercent,
+        muted = rule.muted,
+        channel = rule.channel,
+        balance = rule.balance,
+        priority = rule.priority,
+    )
 }
+
+/** Atténuation des autres applis pendant qu'une appli prioritaire joue : -10 dB environ. */
+const val DUCKING_PERCENT = 30
 
 /** Volume réellement appliqué en tenant compte de muet, solo (§2.1) et du volume maître. */
 fun AppTrack.effectivePercent(anySolo: Boolean, masterPercent: Int): Int {
@@ -39,8 +50,8 @@ fun AppTrack.effectivePercent(anySolo: Boolean, masterPercent: Int): Int {
 /** Gains gauche/droite de la piste : volume effectif, canal (§2.2), puis balance de la piste et globale. */
 data class ChannelGains(val left: Int, val right: Int)
 
-fun AppTrack.channelGains(anySolo: Boolean, masterPercent: Int, globalBalance: Int): ChannelGains {
-    val base = effectivePercent(anySolo, masterPercent)
+fun AppTrack.channelGains(anySolo: Boolean, masterPercent: Int, globalBalance: Int, ducked: Boolean = false): ChannelGains {
+    val base = effectivePercent(anySolo, masterPercent).let { if (ducked && !priority) it * DUCKING_PERCENT / 100 else it }
     var left = if (channel == Channel.RIGHT) 0 else base
     var right = if (channel == Channel.LEFT) 0 else base
     // Balance « atténuante » : le côté opposé baisse, le côté choisi garde son niveau.

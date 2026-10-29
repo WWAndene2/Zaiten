@@ -21,6 +21,8 @@ object SettingsJson {
         .put("masterCapPercent", s.masterCapPercent)
         .put("spatial", s.spatial.toDouble())
         .put("room", s.room.name)
+        .put("preampDb", s.preampDb.toDouble())
+        .put("crossfeed", s.crossfeed)
 
     fun settingsFromJson(o: JSONObject): EffectSettings {
         val defaults = EffectSettings()
@@ -33,6 +35,8 @@ object SettingsJson {
             masterCapPercent = o.optInt("masterCapPercent", defaults.masterCapPercent),
             spatial = o.optDouble("spatial", 0.0).toFloat(),
             room = runCatching { Room.valueOf(o.optString("room")) }.getOrDefault(defaults.room),
+            preampDb = o.optDouble("preampDb", 0.0).toFloat(),
+            crossfeed = o.optBoolean("crossfeed", false),
         )
     }
 
@@ -63,7 +67,8 @@ object SettingsJson {
                 .put("volumePercent", r.volumePercent)
                 .put("muted", r.muted)
                 .put("channel", r.channel.name)
-                .put("balance", r.balance))
+                .put("balance", r.balance)
+                .put("priority", r.priority))
         }
     }
 
@@ -74,6 +79,7 @@ object SettingsJson {
             muted = r.optBoolean("muted", false),
             channel = runCatching { Channel.valueOf(r.optString("channel")) }.getOrDefault(Channel.BOTH),
             balance = r.optInt("balance", 0),
+            priority = r.optBoolean("priority", false),
         )
     }
 }

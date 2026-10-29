@@ -20,7 +20,7 @@ class SettingsJsonTest {
     }
 
     @Test fun rulesRoundTrip() {
-        val rules = mapOf("com.spotify.music" to TrackRule(70, true, Channel.LEFT, -30))
+        val rules = mapOf("com.spotify.music" to TrackRule(70, true, Channel.LEFT, -30, priority = true))
         assertEquals(rules, SettingsJson.rulesFromJson(SettingsJson.rulesToJson(rules)))
     }
 }

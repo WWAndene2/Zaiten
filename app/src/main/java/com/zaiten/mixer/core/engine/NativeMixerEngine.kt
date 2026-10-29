@@ -32,6 +32,8 @@ object NativeMixerEngine {
         settings.mono,
         if (spatialAllowed) settings.spatial else 0f,
         settings.room.ordinal,
+        settings.preampDb,
+        settings.crossfeed,
     )
 
     fun removeTrack(uid: Int) = nativeRemoveTrack(uid)
@@ -67,6 +69,8 @@ object NativeMixerEngine {
         mono: Boolean,
         spatial: Float,
         room: Int,
+        preampDb: Float,
+        crossfeed: Boolean,
     )
     private external fun nativeRemoveTrack(uid: Int)
     private external fun nativeSetTapEnabled(enabled: Boolean): Long

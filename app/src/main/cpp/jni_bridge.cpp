@@ -37,7 +37,8 @@ Java_com_zaiten_mixer_core_engine_NativeMixerEngine_nativeSetEffects(JNIEnv* env
                                                                     jfloatArray eqDb,
                                                                     jfloat compressorAmount,
                                                                     jboolean limiter, jboolean mono,
-                                                                    jfloat spatialAmount, jint room) {
+                                                                    jfloat spatialAmount, jint room,
+                                                                    jfloat preampDb, jboolean crossfeed) {
     dsp::EffectsParams params;
     jsize bands = env->GetArrayLength(eqDb);
     env->GetFloatArrayRegion(eqDb, 0, bands < dsp::kEqBands ? bands : dsp::kEqBands, params.eqDb.data());
@@ -46,6 +47,8 @@ Java_com_zaiten_mixer_core_engine_NativeMixerEngine_nativeSetEffects(JNIEnv* env
     params.mono = mono;
     params.spatialAmount = spatialAmount;
     params.room = static_cast<dsp::Room>(room);
+    params.preampDb = preampDb;
+    params.crossfeed = crossfeed;
     engine.setEffects(params);
 }
 

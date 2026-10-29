@@ -13,6 +13,10 @@ data class EffectSettings(
     /** Intensité de la spatialisation (§3.2) : 0 = arrêt, faible = stéréo élargi, 1 = 3D complet. */
     val spatial: Float = 0f,
     val room: Room = Room.LIVING_ROOM,
+    /** Préampli (§4.3), -12 à +12 dB : une baisse laisse de la marge avant saturation. */
+    val preampDb: Float = 0f,
+    /** Crossfeed (§4.3) : mélange léger des canaux au casque. */
+    val crossfeed: Boolean = false,
 ) {
     companion object {
         /** Doit correspondre à dsp::kEqFrequencies côté natif. */

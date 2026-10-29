@@ -132,7 +132,27 @@ static void spatializerCrossfeedsLeftOnlySource() {
     assert(energyRight > 0.0f);  // Un son à gauche atteint l'oreille droite, comme avec des enceintes.
 }
 
+static void preampScalesLevel() {
+    dsp::EffectsParams p;
+    p.limiter = false;
+    p.preampDb = -6.0f;
+    assert(std::fabs(sineGain(p, 1000) - 0.501f) < 0.01f);
+}
+
+static void crossfeedLeaksBassToOtherEar() {
+    dsp::Crossfeed c;
+    float r = 0;
+    for (int i = 0; i < 4800; ++i) {
+        float l = 0.5f;  // Signal continu à gauche seulement.
+        r = 0;
+        c.process(l, r);
+    }
+    assert(r > 0.1f && r < 0.2f);  // ~0,5 × 0,3 / 1,3.
+}
+
 int main() {
+    preampScalesLevel();
+    crossfeedLeaksBassToOtherEar();
     spatializerOffIsTransparent();
     spatializerKeepsCenterSymmetric();
     reverbStaysBounded();

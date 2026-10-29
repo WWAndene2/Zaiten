@@ -73,6 +73,14 @@ fun PresetsScreen() {
                 onDelete = { EffectsRepository.delete(preset.name) },
             )
         }
+        Text("Comparaison A/B", style = MaterialTheme.typography.titleMedium)
+        val ab by EffectsRepository.abSlots.collectAsState()
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimens.Gap)) {
+            OutlinedButton(onClick = EffectsRepository::storeA) { Text(if (ab.first == null) "Mémoriser A" else "Remplacer A") }
+            OutlinedButton(onClick = EffectsRepository::storeB) { Text(if (ab.second == null) "Mémoriser B" else "Remplacer B") }
+            OutlinedButton(onClick = EffectsRepository::toggleAb, enabled = ab.first != null && ab.second != null) { Text("Basculer A ↔ B") }
+        }
+        Text("Actions", style = MaterialTheme.typography.titleMedium)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimens.Gap)) {
             OutlinedButton(onClick = { naming = NameDialog.Save }) { Text("Enregistrer") }
             OutlinedButton(onClick = { exporter.launch("presets-zaiten.json") }, enabled = custom.isNotEmpty()) { Text("Exporter") }

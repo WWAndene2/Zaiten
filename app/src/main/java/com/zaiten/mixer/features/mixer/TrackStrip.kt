@@ -20,6 +20,11 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,7 +35,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlin.math.log10
+import kotlinx.coroutines.delay
 import com.zaiten.mixer.core.mixer.AppTrack
+import com.zaiten.mixer.core.mixer.LevelMeter
 import com.zaiten.mixer.core.mixer.VolumeRange
 
 // Dimensions sur l'échelle du design system (CLAUDE.md §7).
@@ -51,6 +59,7 @@ private val ToggleGap = 4.dp
 private val ToggleRadius = 8.dp
 private val FaderLength = 192.dp
 private val FaderThickness = 48.dp
+private val MeterHeight = 4.dp
 
 /** Tranche verticale de la table de mixage (§7.3, maquette « Table de mixage »). */
 @Composable
@@ -61,6 +70,7 @@ fun TrackStrip(
     onToggleSolo: () -> Unit,
     onRemove: () -> Unit,
     modifier: Modifier = Modifier,
+    level: Float = 0f,
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainer,
@@ -88,6 +98,7 @@ fun TrackStrip(
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center,
             )
+            LevelBar(level)
             VerticalFader(
                 percent = track.volumePercent,
                 onChange = onVolumeChange,
@@ -118,6 +129,15 @@ fun TrackStripRow(
     onToggleSolo: (uid: Int) -> Unit,
     onRemove: (uid: Int) -> Unit,
 ) {
+    // Vu-mètres rafraîchis à ~15 images/s : assez fluide, sans recomposer à chaque bloc audio.
+    var levels by remember { mutableStateOf(emptyMap<Int, Float>()) }
+    LaunchedEffect(tracks) {
+        while (true) {
+            levels = tracks.associate { it.uid to LevelMeter.level(it.uid) }
+            delay(METER_REFRESH_MS)
+        }
+    }
+
     @Composable
     fun strip(track: AppTrack, modifier: Modifier) = TrackStrip(
         track = track,
@@ -126,6 +146,7 @@ fun TrackStripRow(
         onToggleSolo = { onToggleSolo(track.uid) },
         onRemove = { onRemove(track.uid) },
         modifier = modifier,
+        level = levels[track.uid] ?: 0f,
     )
     if (tracks.size <= MaxSharedStrips) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(StripGap)) {
@@ -139,6 +160,31 @@ fun TrackStripRow(
         }
     }
 }
+
+/** Vu-mètre horizontal (§7.3) : niveau crête de l'appli, en dB pour suivre l'oreille. */
+@Composable
+private fun LevelBar(level: Float) {
+    val db = if (level > 0f) 20f * log10(level) else METER_FLOOR_DB
+    val fraction = ((db - METER_FLOOR_DB) / -METER_FLOOR_DB).coerceIn(0f, 1f)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(MeterHeight)
+            .clip(RoundedCornerShape(MeterHeight))
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(fraction)
+                .height(MeterHeight)
+                .background(if (db > METER_HOT_DB) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary),
+        )
+    }
+}
+
+private const val METER_REFRESH_MS = 66L
+private const val METER_FLOOR_DB = -60f
+private const val METER_HOT_DB = -3f
 
 @Composable
 private fun Toggle(label: String, selected: Boolean, onClick: () -> Unit) {

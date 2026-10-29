@@ -52,6 +52,8 @@ object MixerRepository {
 
     fun setBalance(uid: Int, balance: Int) = edit(uid) { it.copy(balance = balance.coerceIn(-100, 100)) }
 
+    fun togglePriority(uid: Int) = edit(uid) { it.copy(priority = !it.priority) }
+
     fun setMaster(percent: Int) { _masterPercent.value = VolumeRange.clamp(percent) }
 
     fun setGlobalBalance(balance: Int) { _globalBalance.value = balance.coerceIn(-100, 100) }
@@ -63,7 +65,8 @@ object MixerRepository {
         val list = _tracks.value
         val track = list.firstOrNull { it.uid == uid } ?: return ChannelGains(0, 0)
         val master = minOf(_masterPercent.value, _masterCapPercent.value)
-        return track.channelGains(list.any { it.solo }, master, _globalBalance.value)
+        val ducked = list.any { it.priority && it.uid != uid && LevelMeter.isAudible(it.uid) }
+        return track.channelGains(list.any { it.solo }, master, _globalBalance.value, ducked)
     }
 
     private fun edit(uid: Int, change: (AppTrack) -> AppTrack) {

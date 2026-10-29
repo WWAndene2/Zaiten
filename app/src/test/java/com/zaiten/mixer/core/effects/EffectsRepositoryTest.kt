@@ -43,6 +43,17 @@ class EffectsRepositoryTest {
         assertEquals(listOf("Perso", "Perso (2)", "Film (2)"), EffectsRepository.customPresets.value.map { it.name })
     }
 
+    @Test fun abToggleSwitchesBetweenStoredSettings() {
+        EffectsRepository.setEqBand(0, 6f)
+        EffectsRepository.storeA()
+        EffectsRepository.setEqBand(0, -6f)
+        EffectsRepository.storeB()
+        EffectsRepository.toggleAb()
+        assertEquals(6f, EffectsRepository.settings.value.eqDb[0])
+        EffectsRepository.toggleAb()
+        assertEquals(-6f, EffectsRepository.settings.value.eqDb[0])
+    }
+
     @Test fun nextPresetCycles() {
         EffectsRepository.apply(BuiltInPresets.all.last())
         EffectsRepository.applyNext()

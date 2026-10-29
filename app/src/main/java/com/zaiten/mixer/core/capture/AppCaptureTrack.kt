@@ -8,6 +8,7 @@ import android.media.AudioRecord
 import android.media.projection.MediaProjection
 import android.os.SystemClock
 import com.zaiten.mixer.core.engine.NativeMixerEngine
+import com.zaiten.mixer.core.mixer.LevelMeter
 import com.zaiten.mixer.core.mixer.MixerRepository
 import kotlin.math.abs
 
@@ -58,13 +59,16 @@ class AppCaptureTrack(private val projection: MediaProjection, private val uid: 
             while (running) {
                 val read = record.read(buffer, 0, buffer.size)
                 if (read <= 0) continue
-                if (isAudible(buffer, read)) lastSoundAtMs = SystemClock.elapsedRealtime()
+                val peak = peakOf(buffer, read)
+                LevelMeter.report(uid, peak)
+                if (peak * 32768 > SILENCE_THRESHOLD) lastSoundAtMs = SystemClock.elapsedRealtime()
                 NativeMixerEngine.setGains(uid, MixerRepository.currentGains(uid))
                 NativeMixerEngine.write(uid, buffer, read)
             }
             record.stop()
             record.release()
             NativeMixerEngine.removeTrack(uid)
+            LevelMeter.forget(uid)
         }, "capture-$uid").apply { start() }
     }
 
@@ -74,9 +78,10 @@ class AppCaptureTrack(private val projection: MediaProjection, private val uid: 
         thread = null
     }
 
-    private fun isAudible(buffer: ShortArray, count: Int): Boolean {
-        for (i in 0 until count) if (abs(buffer[i].toInt()) > SILENCE_THRESHOLD) return true
-        return false
+    private fun peakOf(buffer: ShortArray, count: Int): Float {
+        var max = 0
+        for (i in 0 until count) max = maxOf(max, abs(buffer[i].toInt()))
+        return max / 32768f
     }
 
     private companion object {

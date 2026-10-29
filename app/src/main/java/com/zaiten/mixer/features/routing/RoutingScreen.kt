@@ -70,6 +70,13 @@ private fun TrackRouting(track: AppTrack) {
                 }
             }
             LabeledSlider("Balance", track.balance, -100..100, ::balanceText) { MixerRepository.setBalance(track.uid, it) }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Prioritaire")
+                    Text("Les autres applis baissent quand elle joue", style = MaterialTheme.typography.bodySmall)
+                }
+                Switch(checked = track.priority, onCheckedChange = { MixerRepository.togglePriority(track.uid) })
+            }
         }
     }
 }

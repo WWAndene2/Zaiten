@@ -40,6 +40,13 @@ fun EffectsScreen() {
         verticalArrangement = Arrangement.spacedBy(Dimens.Gutter),
     ) {
         Text("Effets", style = MaterialTheme.typography.headlineMedium)
+        LabeledSlider(
+            label = "Préampli",
+            value = settings.preampDb.roundToInt(),
+            range = -12..12,
+            valueText = { "${formatDb(it.toFloat())} dB" },
+            onChange = { EffectsRepository.setPreamp(it.toFloat()) },
+        )
         Text("Égaliseur", style = MaterialTheme.typography.titleMedium)
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             EffectSettings.EQ_FREQUENCIES.forEachIndexed { band, frequency ->
@@ -59,6 +66,13 @@ fun EffectsScreen() {
                 Text("Évite la saturation au-delà de 100 %", style = MaterialTheme.typography.bodySmall)
             }
             Switch(checked = settings.limiter, onCheckedChange = EffectsRepository::setLimiter)
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Crossfeed")
+                Text("Moins de fatigue au casque sur une stéréo très séparée", style = MaterialTheme.typography.bodySmall)
+            }
+            Switch(checked = settings.crossfeed, onCheckedChange = EffectsRepository::setCrossfeed)
         }
     }
 }

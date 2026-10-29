@@ -47,8 +47,13 @@ class ChannelGainsTest {
         assertEquals(ChannelGains(25, 100), track.copy(balance = 50).channelGains(false, 100, 50))
     }
 
+    @Test fun duckingLowersOnlyNonPriorityTracks() {
+        assertEquals(ChannelGains(30, 30), track.channelGains(false, 100, 0, ducked = true))
+        assertEquals(ChannelGains(100, 100), track.copy(priority = true).channelGains(false, 100, 0, ducked = true))
+    }
+
     @Test fun ruleRoundTripsWithoutSolo() {
-        val t = track.copy(volumePercent = 70, muted = true, solo = true, channel = Channel.LEFT, balance = -20)
+        val t = track.copy(volumePercent = 70, muted = true, solo = true, channel = Channel.LEFT, balance = -20, priority = true)
         val restored = AppTrack(1, "a", "A").withRule(t.rule())
         assertEquals(t.copy(solo = false), restored)
     }

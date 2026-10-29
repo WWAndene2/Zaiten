@@ -35,11 +35,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.zaiten.mixer.core.capture.ActiveSessionWatcher
+import com.zaiten.mixer.core.capture.AudioCaptureService
 import com.zaiten.mixer.core.effects.EffectsRepository
 import com.zaiten.mixer.core.mixer.AppTrack
 import com.zaiten.mixer.core.mixer.VolumeRange
 import com.zaiten.mixer.core.mixer.MixerRepository
 import com.zaiten.mixer.core.mixer.OriginalSoundMode
+import com.zaiten.mixer.core.mixer.SleepTimer
 
 // Dimensions alignées sur l'échelle du design system (CLAUDE.md §7).
 private val Gutter = 16.dp
@@ -64,6 +66,7 @@ fun MixerScreen(capturing: Boolean, onStartCapture: () -> Unit) {
             if (capturing) OriginalSoundNotice()
             PercentSlider(label = "Volume maître", percent = master, onChange = MixerRepository::setMaster)
             ActiveEffectsChips()
+            SleepTimerControl()
             Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                 Text("Applis actives", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                 TextButton(onClick = { picking = true }) { Text("Ajouter") }
@@ -174,3 +177,28 @@ private fun ActiveEffectsChips() {
         FilterChip(selected = settings.limiter, onClick = { EffectsRepository.setLimiter(!settings.limiter) }, label = { Text("Limiteur") })
     }
 }
+
+/** Minuterie de sommeil (§4.3) : fondu sur la dernière minute, puis arrêt de la capture. */
+@Composable
+private fun SleepTimerControl() {
+    val context = LocalContext.current
+    val remaining by SleepTimer.remainingMs.collectAsState()
+    Row(horizontalArrangement = Arrangement.spacedBy(Gap), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+        Text("Minuterie", style = MaterialTheme.typography.bodyMedium)
+        val left = remaining
+        if (left != null) {
+            Text("${(left / 60_000) + 1} min", style = MaterialTheme.typography.bodyMedium)
+            TextButton(onClick = SleepTimer::cancel) { Text("Annuler") }
+        } else {
+            SLEEP_MINUTES.forEach { minutes ->
+                FilterChip(
+                    selected = false,
+                    onClick = { SleepTimer.start(minutes) { context.stopService(Intent(context, AudioCaptureService::class.java)) } },
+                    label = { Text("$minutes") },
+                )
+            }
+        }
+    }
+}
+
+private val SLEEP_MINUTES = listOf(15, 30, 60)

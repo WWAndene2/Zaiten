@@ -47,6 +47,25 @@ object EffectsRepository {
     fun setMono(enabled: Boolean) = edit { it.copy(mono = enabled) }
     fun setSpatial(amount: Float) = edit { it.copy(spatial = amount.coerceIn(0f, 1f)) }
     fun setRoom(room: Room) = edit { it.copy(room = room) }
+    fun setPreamp(db: Float) = edit { it.copy(preampDb = db.coerceIn(-12f, 12f)) }
+    fun setCrossfeed(enabled: Boolean) = edit { it.copy(crossfeed = enabled) }
+
+    /**
+     * Comparaison A/B (§7.6) : deux réglages mémorisés, bascule instantanée. Le volume n'est pas
+     * égalisé entre A et B (le §7.6 le prévoit) : il faudrait une mesure de sonie du mix.
+     */
+    private val _abSlots = MutableStateFlow<Pair<EffectSettings?, EffectSettings?>>(null to null)
+    val abSlots: StateFlow<Pair<EffectSettings?, EffectSettings?>> = _abSlots
+
+    fun storeA() = _abSlots.update { it.copy(first = _settings.value) }
+    fun storeB() = _abSlots.update { it.copy(second = _settings.value) }
+
+    /** Applique A si on est sur B (ou ailleurs), B si on est sur A. */
+    fun toggleAb() {
+        val (a, b) = _abSlots.value
+        val next = if (_settings.value == a) b else a
+        next?.let { edit { _ -> it } }
+    }
 
     /** Enregistre les réglages courants sous [name] ; remplace un preset personnel du même nom. */
     fun saveCurrentAs(name: String): Boolean {
