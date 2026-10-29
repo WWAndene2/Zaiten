@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Zaiten Mixeur</string>
+    <string name="notification_channel">Mixage audio</string>
+    <string name="notification_running">Mixage en cours</string>
+</resources>

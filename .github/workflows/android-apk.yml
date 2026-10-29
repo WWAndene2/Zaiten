@@ -1,0 +1,55 @@
+# Construit l'APK de debug à chaque merge sur main et le publie en pré-release GitHub,
+# téléchargeable directement depuis un téléphone pour les tests sur appareil.
+name: APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: "platforms;android-35 build-tools;35.0.0 ndk;27.2.12479018 cmake;3.22.1"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Tests du DSP natif (hôte)
+        run: |
+          cmake -S app/src/main/cpp/tests -B build/cpp-tests
+          cmake --build build/cpp-tests
+          ctest --test-dir build/cpp-tests --output-on-failure
+
+      - name: Tests unitaires et APK
+        run: ./gradlew testDebugUnitTest assembleDebug
+
+      - name: Renommer l'APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk "zaiten-mixer-${{ github.run_number }}.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zaiten-mixer-${{ github.run_number }}
+          path: zaiten-mixer-${{ github.run_number }}.apk
+
+      - name: Pré-release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Build ${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          prerelease: true
+          body: APK de debug construit depuis ${{ github.sha }}.
+          files: zaiten-mixer-${{ github.run_number }}.apk
