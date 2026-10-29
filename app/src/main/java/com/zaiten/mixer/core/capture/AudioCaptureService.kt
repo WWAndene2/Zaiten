@@ -8,6 +8,7 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.media.AudioManager
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
 import android.os.Build
@@ -32,6 +33,7 @@ class AudioCaptureService : Service() {
     private var projection: MediaProjection? = null
     private val captures = mutableMapOf<Int, AppCaptureTrack>()
     private var sessionWatcher: ActiveSessionWatcher? = null
+    private var originalMuter: OriginalMuter? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -43,6 +45,9 @@ class AudioCaptureService : Service() {
             projection = manager.getMediaProjection(Activity.RESULT_OK, resultData)
             observeTracks()
             sessionWatcher = ActiveSessionWatcher(this).also { it.start() }
+            val muter = OriginalMuter(getSystemService(AudioManager::class.java), ::lastSoundAt)
+            originalMuter = muter
+            scope.launch { muter.run() }
         }
         return START_NOT_STICKY
     }
@@ -61,6 +66,9 @@ class AudioCaptureService : Service() {
             captures[uid] = AppCaptureTrack(proj, uid).also { it.start() }
         }
     }
+
+    @Synchronized
+    private fun lastSoundAt(): Long = captures.values.maxOfOrNull { it.lastSoundAtMs } ?: 0L
 
     private fun startInForeground() {
         val manager = getSystemService(NotificationManager::class.java)
@@ -81,6 +89,7 @@ class AudioCaptureService : Service() {
 
     override fun onDestroy() {
         sessionWatcher?.stop()
+        originalMuter?.restore()
         synchronized(this) { captures.values.forEach { it.stop() }; captures.clear() }
         projection?.stop()
         scope.cancel()

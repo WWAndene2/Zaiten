@@ -12,6 +12,11 @@ object MixerRepository {
     private val _masterPercent = MutableStateFlow(100)
     val masterPercent: StateFlow<Int> = _masterPercent
 
+    private val _originalSoundMode = MutableStateFlow(OriginalSoundMode.PENDING)
+    val originalSoundMode: StateFlow<OriginalSoundMode> = _originalSoundMode
+
+    fun setOriginalSoundMode(mode: OriginalSoundMode) { _originalSoundMode.value = mode }
+
     fun addTrack(track: AppTrack) = _tracks.update { list ->
         if (list.any { it.uid == track.uid }) list else list + track
     }

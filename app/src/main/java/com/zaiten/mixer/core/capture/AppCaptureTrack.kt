@@ -7,19 +7,23 @@ import android.media.AudioPlaybackCaptureConfiguration
 import android.media.AudioRecord
 import android.media.AudioTrack
 import android.media.projection.MediaProjection
+import android.os.SystemClock
 import com.zaiten.mixer.core.mixer.GainProcessor
 import com.zaiten.mixer.core.mixer.MixerRepository
+import kotlin.math.abs
 
 /**
  * Capture le son d'une seule appli (filtre par UID) et le rejoue avec le volume de sa piste.
  *
- * Limite connue (non contournable sans root) : AudioPlaybackCapture copie le son, il ne le
- * retire pas de la sortie d'origine. L'appli capturée doit donc être mise en sourdine de son
- * côté, sinon on entend l'original plus la copie. Le contournement est à valider sur appareil
- * réel au prototype (étape 1).
+ * AudioPlaybackCapture copie le son sans le retirer de la sortie d'origine : OriginalMuter coupe
+ * le volume média pour faire taire les originaux, et la copie est rejouée sur un autre flux.
  */
 class AppCaptureTrack(private val projection: MediaProjection, private val uid: Int) {
     @Volatile private var running = false
+
+    /** Instant (elapsedRealtime) du dernier tampon capturé non silencieux, lu par OriginalMuter. */
+    @Volatile var lastSoundAtMs = 0L
+        private set
     private var thread: Thread? = null
 
     @SuppressLint("MissingPermission") // RECORD_AUDIO est demandée avant de démarrer le service.
@@ -43,10 +47,14 @@ class AppCaptureTrack(private val projection: MediaProjection, private val uid: 
             .setBufferSizeInBytes(bufferBytes)
             .setAudioPlaybackCaptureConfig(config)
             .build()
-        // USAGE_ASSISTANT n'est pas capturable : la copie rejouée n'est pas recapturée en boucle.
+        // REPLAY_USAGE n'est pas capturable (pas de boucle) et ne dépend pas du volume média,
+        // que OriginalMuter met à zéro.
         val track = AudioTrack.Builder()
             .setAudioAttributes(
-                AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ASSISTANT).build(),
+                AudioAttributes.Builder()
+                    .setUsage(REPLAY_USAGE)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                    .build(),
             )
             .setAudioFormat(
                 AudioFormat.Builder()
@@ -67,6 +75,7 @@ class AppCaptureTrack(private val projection: MediaProjection, private val uid: 
             while (running) {
                 val read = record.read(buffer, 0, buffer.size)
                 if (read <= 0) continue
+                if (isAudible(buffer, read)) lastSoundAtMs = SystemClock.elapsedRealtime()
                 GainProcessor.process(buffer, read, MixerRepository.currentPercent(uid))
                 track.write(buffer, 0, read)
             }
@@ -81,7 +90,21 @@ class AppCaptureTrack(private val projection: MediaProjection, private val uid: 
         thread = null
     }
 
+    private fun isAudible(buffer: ShortArray, count: Int): Boolean {
+        for (i in 0 until count) if (abs(buffer[i].toInt()) > SILENCE_THRESHOLD) return true
+        return false
+    }
+
     private companion object {
         const val SAMPLE_RATE = 48_000
+        /** Environ -50 dBFS : en dessous, le tampon est considéré comme silencieux. */
+        const val SILENCE_THRESHOLD = 100
+
+        /**
+         * Flux de la copie rejouée. Hypothèse à valider sur appareil : en mode normal (hors appel),
+         * ce flux suit la sortie casque/Bluetooth A2DP comme le média. Sans casque, certains
+         * appareils pourraient le router vers l'écouteur d'appel au lieu du haut-parleur.
+         */
+        const val REPLAY_USAGE = AudioAttributes.USAGE_VOICE_COMMUNICATION
     }
 }

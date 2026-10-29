@@ -37,6 +37,7 @@ import com.zaiten.mixer.core.capture.ActiveSessionWatcher
 import com.zaiten.mixer.core.mixer.AppTrack
 import com.zaiten.mixer.core.mixer.GainProcessor
 import com.zaiten.mixer.core.mixer.MixerRepository
+import com.zaiten.mixer.core.mixer.OriginalSoundMode
 
 // Dimensions alignées sur l'échelle du design system (CLAUDE.md §7).
 private val Gutter = 16.dp
@@ -56,6 +57,7 @@ fun MixerScreen(capturing: Boolean, onStartCapture: () -> Unit) {
                 Button(onClick = onStartCapture) { Text("Démarrer la capture") }
             }
             SessionAccessPrompt()
+            if (capturing) OriginalSoundNotice()
             PercentSlider(label = "Volume maître", percent = master, onChange = MixerRepository::setMaster)
             Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                 Text("Applis actives", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
@@ -151,4 +153,17 @@ private fun SessionAccessPrompt() {
             context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
         }) { Text("Autoriser") }
     }
+}
+
+@Composable
+private fun OriginalSoundNotice() {
+    val mode by MixerRepository.originalSoundMode.collectAsState()
+    val text = when (mode) {
+        OriginalSoundMode.PENDING -> "Lancez un son dans une appli pour activer le mixage."
+        OriginalSoundMode.MUTED_BY_APP -> "Le son passe par le mixeur. Réglez le volume ici plutôt qu'avec les touches."
+        OriginalSoundMode.ORIGINAL_STILL_PLAYS ->
+            "Cet appareil ne permet pas de couper le son d'origine : le mixeur peut augmenter " +
+                "le volume d'une appli, mais pas le baisser."
+    }
+    Text(text, style = MaterialTheme.typography.bodySmall)
 }
