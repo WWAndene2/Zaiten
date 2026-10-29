@@ -51,6 +51,8 @@ dependencies {
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
     implementation("com.google.oboe:oboe:1.9.0")
+    // Lecteur YouTube officiel (IFrame) dans une vue Android, pour la synchro média.
+    implementation("com.pierfrancescosoffritti.androidyoutubeplayer:core:12.1.0")
     testImplementation("junit:junit:4.13.2")
     // org.json d'Android n'est qu'un bouchon dans les tests JVM : implémentation réelle pour SettingsJsonTest.
     testImplementation("org.json:json:20240303")

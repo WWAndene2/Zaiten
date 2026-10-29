@@ -15,6 +15,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import com.zaiten.mixer.features.effects.EffectsScreen
+import com.zaiten.mixer.features.mediasync.MediaSyncScreen
 import com.zaiten.mixer.features.mixer.MixerScreen
 import com.zaiten.mixer.features.presets.PresetsScreen
 import com.zaiten.mixer.features.routing.RoutingScreen
@@ -27,6 +28,7 @@ private enum class Tab(val label: String, val icon: Int) {
     EFFECTS("Effets", android.R.drawable.ic_menu_manage),
     SPATIAL("3D", android.R.drawable.ic_menu_compass),
     PRESETS("Presets", android.R.drawable.ic_menu_agenda),
+    SYNC("Synchro", android.R.drawable.ic_menu_rotate),
 }
 
 @Composable
@@ -39,8 +41,10 @@ fun AppShell(capturing: Boolean, onStartCapture: () -> Unit) {
                     NavigationBarItem(
                         selected = tab == it,
                         onClick = { tab = it },
-                        icon = { Icon(painterResource(it.icon), contentDescription = null) },
-                        label = { Text(it.label) },
+                        icon = { Icon(painterResource(it.icon), contentDescription = it.label) },
+                        // Six onglets ne tiennent pas avec leurs libellés sur 360 dp : seul l'onglet actif l'affiche.
+                        label = { Text(it.label, maxLines = 1, softWrap = false) },
+                        alwaysShowLabel = false,
                     )
                 }
             }
@@ -53,6 +57,7 @@ fun AppShell(capturing: Boolean, onStartCapture: () -> Unit) {
                 Tab.EFFECTS -> EffectsScreen()
                 Tab.SPATIAL -> SpatialScreen()
                 Tab.PRESETS -> PresetsScreen()
+                Tab.SYNC -> MediaSyncScreen()
             }
         }
     }

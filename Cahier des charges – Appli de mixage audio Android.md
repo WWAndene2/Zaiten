@@ -26,6 +26,8 @@ Une appli Android qui contrôle en direct le son de plusieurs applis à la fois 
 - Réglage du décalage (manuel au pas de 10 ms, plus un assistant de calage).
 - Volumes séparés pour la TV et le casque.
 - Point de vigilance : c'est la fonction la plus complexe, à valider avec un prototype.
+- **Approche retenue** : avec le cast par appli (YouTube vers PS5 ou TV), c'est l'écran qui télécharge le média ; le téléphone ne joue rien et ne peut rien capter. Zaiten se couple donc à l'écran comme une seconde télécommande (couplage « code TV » de YouTube), suit la vidéo, la lecture et la position, et rejoue la même vidéo sur le téléphone avec le lecteur YouTube officiel, son dans le casque, recalée en continu et décalée au réglage choisi.
+- Limites : YouTube seulement pour l'instant (protocole non officiel, peut changer) ; le lecteur reste visible sur le téléphone (règles de YouTube) ; la vidéo est téléchargée deux fois.
 
 ### 2.4 Gains, égaliseur et presets
 
@@ -161,7 +163,7 @@ Ordre d'implémentation : chaque étape ne dépend que des précédentes.
 6. **Notification, tuiles et widget** (§2.6) : ils pilotent un état devenu stable.
 7. **Chaîne de traitement et presets** : égaliseur, compresseur, limiteur, presets (§2.4, §7.2, §7.4).
 8. **Spatialisation 3D** (§3) : se branche à son étage de la chaîne.
-9. **Son simultané Cast et casque** (§2.3) : la plus risquée, sur un moteur et une chaîne déjà éprouvés.
+9. **Son simultané Cast et casque** (§2.3) : synchro média par couplage avec l'écran (YouTube d'abord).
 10. **Système multi-appareils** (§2.7) : réutilise le calage de décalage de l'étape 9 et l'upmix de l'étape 8.
 11. **Fonctions bonus** (§4).
 
