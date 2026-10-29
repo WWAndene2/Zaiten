@@ -12,7 +12,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.mutableStateOf
 import com.zaiten.mixer.core.capture.AudioCaptureService
-import com.zaiten.mixer.features.mixer.MixerScreen
 
 class MainActivity : ComponentActivity() {
     private val capturing = mutableStateOf(false)
@@ -39,9 +38,15 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme(colorScheme = darkColorScheme()) {
-                MixerScreen(capturing = capturing.value, onStartCapture = ::requestCapture)
+                AppShell(capturing = capturing.value, onStartCapture = ::requestCapture)
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // L'accès aux notifications s'accorde hors de l'appli : on relance la détection au retour.
+        if (capturing.value) AudioCaptureService.refreshSessions(this)
     }
 
     private fun requestCapture() {

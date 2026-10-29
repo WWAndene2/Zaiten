@@ -26,6 +26,8 @@ Une appli Android qui contrôle en direct le son de plusieurs applis à la fois 
 - Réglage du décalage (manuel au pas de 10 ms, plus un assistant de calage).
 - Volumes séparés pour la TV et le casque.
 - Point de vigilance : c'est la fonction la plus complexe, à valider avec un prototype.
+- **Approche retenue** : avec le cast par appli (YouTube vers PS5 ou TV), c'est l'écran qui télécharge le média ; le téléphone ne joue rien et ne peut rien capter. Zaiten se couple donc à l'écran comme une seconde télécommande (couplage « code TV » de YouTube), suit la vidéo, la lecture et la position, et rejoue la même vidéo sur le téléphone avec le lecteur YouTube officiel, son dans le casque, recalée en continu et décalée au réglage choisi.
+- Limites : YouTube seulement pour l'instant (protocole non officiel, peut changer) ; le lecteur reste visible sur le téléphone (règles de YouTube) ; la vidéo est téléchargée deux fois.
 
 ### 2.4 Gains, égaliseur et presets
 
@@ -45,6 +47,20 @@ Une appli Android qui contrôle en direct le son de plusieurs applis à la fois 
 - Notification persistante avec le volume global, le preset actif, la 3D marche/arrêt et les principales applis.
 - Tuiles de réglages rapides.
 - Widget pour l'écran d'accueil.
+
+### 2.7 Système multi-appareils : enceintes et barre de son
+
+Plusieurs appareils synchronisés forment un seul équipement stéréo ou home cinéma.
+
+- **Rôles** : un appareil source capte et mixe le son (§2.1), les autres reçoivent chacun leur canal et le jouent.
+- **Configurations** : stéréo (G + D), barre de son (G + centre + D), 2.1 (ajout d'un caisson), 5.1 (ajout des arrière). Chaque appareil reçoit un canal, ou les basses seules pour le caisson.
+- **Appareils compatibles** : téléphones et tablettes avec l'appli, plus les enceintes Wi-Fi et Cast quand leur protocole le permet.
+- **Synchronisation** : horloge commune entre appareils sur le Wi-Fi local, avec un écart visé sous 5 ms entre enceintes (au-delà, la stéréo se déforme).
+- **Calibrage** : le micro de la source écoute chaque enceinte pour régler son décalage et son volume, avec un réglage manuel en complément.
+- **Placement** : position de chaque appareil dans la pièce (gauche, droite, distance) pour compenser les écarts de distance.
+- **Upmix** : un contenu stéréo est réparti sur le centre et l'arrière, avec le même upmix que la spatialisation (§3.1).
+- **Tolérance** : un appareil qui se déconnecte voit son canal reporté sur les autres, sans couper le son.
+- Point de vigilance : la synchronisation fine sur Wi-Fi est délicate, à valider avec un prototype à deux téléphones avant le reste.
 
 ## 3. Spatialisation : binaural et 3D virtuelle
 
@@ -147,8 +163,9 @@ Ordre d'implémentation : chaque étape ne dépend que des précédentes.
 6. **Notification, tuiles et widget** (§2.6) : ils pilotent un état devenu stable.
 7. **Chaîne de traitement et presets** : égaliseur, compresseur, limiteur, presets (§2.4, §7.2, §7.4).
 8. **Spatialisation 3D** (§3) : se branche à son étage de la chaîne.
-9. **Son simultané Cast et casque** (§2.3) : la plus risquée, sur un moteur et une chaîne déjà éprouvés.
-10. **Fonctions bonus** (§4).
+9. **Son simultané Cast et casque** (§2.3) : synchro média par couplage avec l'écran (YouTube d'abord).
+10. **Système multi-appareils** (§2.7) : réutilise le calage de décalage de l'étape 9 et l'upmix de l'étape 8.
+11. **Fonctions bonus** (§4).
 
 ## 7. Gestion du son en détail
 
@@ -201,7 +218,7 @@ Tous les presets sont modifiables et peuvent servir de base à un preset personn
 - **Volume perçu égalisé entre applis** : mesure LUFS en continu pour que toutes les applis sonnent au même niveau.
 - **Correction selon l'ajustement du casque** : le micro des écouteurs détecte un embout mal placé et compense la perte de basses.
 - **Mixage contextuel par IA** : l'appli apprend les habitudes de l'utilisateur et propose ou applique les réglages correspondants.
-- **Enceintes multiples synchronisées** : plusieurs téléphones ou enceintes utilisés comme un système surround.
+- **Enceintes multiples synchronisées** : plusieurs téléphones ou enceintes utilisés comme un système surround (détaillé au §2.7).
 - **Profils partagés entre appareils** : réglages synchronisés entre téléphone, tablette et PC.
 - **Égaliseur selon la pièce** : analyse de l'écho par le micro et correction du son du haut-parleur ou de l'enceinte.
 - **Mode « bulle sonore »** : plusieurs personnes écoutent la même vidéo sur leur propre casque, chacune avec sa langue, son volume et ses réglages.

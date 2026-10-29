@@ -8,6 +8,7 @@ import android.media.AudioRecord
 import android.media.projection.MediaProjection
 import android.os.SystemClock
 import com.zaiten.mixer.core.engine.NativeMixerEngine
+import com.zaiten.mixer.core.mixer.LevelMeter
 import com.zaiten.mixer.core.mixer.MixerRepository
 import kotlin.math.abs
 
@@ -39,9 +40,12 @@ class AppCaptureTrack(private val projection: MediaProjection, private val uid: 
             .setSampleRate(SAMPLE_RATE)
             .setChannelMask(AudioFormat.CHANNEL_IN_STEREO)
             .build()
-        val bufferBytes = AudioRecord.getMinBufferSize(
+        val minBytes = AudioRecord.getMinBufferSize(
             SAMPLE_RATE, AudioFormat.CHANNEL_IN_STEREO, AudioFormat.ENCODING_PCM_16BIT,
         )
+        // Tampon système large (anti-perte), mais lectures par blocs réguliers de 10 ms : des blocs
+        // plus longs que la file du moteur (30 ms) l'obligeaient à jeter du son, d'où des grésillements.
+        val bufferBytes = maxOf(minBytes * 2, CHUNK_SAMPLES * 2 * 4)
         val record = AudioRecord.Builder()
             .setAudioFormat(format)
             .setBufferSizeInBytes(bufferBytes)
@@ -50,18 +54,21 @@ class AppCaptureTrack(private val projection: MediaProjection, private val uid: 
 
         running = true
         thread = Thread({
-            val buffer = ShortArray(bufferBytes / 2)
+            val buffer = ShortArray(CHUNK_SAMPLES)
             record.startRecording()
             while (running) {
                 val read = record.read(buffer, 0, buffer.size)
                 if (read <= 0) continue
-                if (isAudible(buffer, read)) lastSoundAtMs = SystemClock.elapsedRealtime()
-                NativeMixerEngine.setGain(uid, MixerRepository.currentPercent(uid))
+                val peak = peakOf(buffer, read)
+                LevelMeter.report(uid, peak)
+                if (peak * 32768 > SILENCE_THRESHOLD) lastSoundAtMs = SystemClock.elapsedRealtime()
+                NativeMixerEngine.setGains(uid, MixerRepository.currentGains(uid))
                 NativeMixerEngine.write(uid, buffer, read)
             }
             record.stop()
             record.release()
             NativeMixerEngine.removeTrack(uid)
+            LevelMeter.forget(uid)
         }, "capture-$uid").apply { start() }
     }
 
@@ -71,14 +78,17 @@ class AppCaptureTrack(private val projection: MediaProjection, private val uid: 
         thread = null
     }
 
-    private fun isAudible(buffer: ShortArray, count: Int): Boolean {
-        for (i in 0 until count) if (abs(buffer[i].toInt()) > SILENCE_THRESHOLD) return true
-        return false
+    private fun peakOf(buffer: ShortArray, count: Int): Float {
+        var max = 0
+        for (i in 0 until count) max = maxOf(max, abs(buffer[i].toInt()))
+        return max / 32768f
     }
 
     private companion object {
         /** Doit correspondre à MixerEngine::kSampleRate côté natif. */
         const val SAMPLE_RATE = 48_000
+        /** 10 ms de stéréo 16 bits : 480 images × 2 canaux. */
+        const val CHUNK_SAMPLES = SAMPLE_RATE / 100 * 2
         /** Environ -50 dBFS : en dessous, le tampon est considéré comme silencieux. */
         const val SILENCE_THRESHOLD = 100
     }
