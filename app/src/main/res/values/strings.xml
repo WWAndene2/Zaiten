@@ -3,4 +3,5 @@
     <string name="app_name">Zaiten Mixeur</string>
     <string name="notification_channel">Mixage audio</string>
     <string name="notification_running">Mixage en cours</string>
+    <string name="tile_label">Preset</string>
 </resources>
