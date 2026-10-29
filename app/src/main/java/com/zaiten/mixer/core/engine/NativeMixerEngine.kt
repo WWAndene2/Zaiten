@@ -36,6 +36,26 @@ object NativeMixerEngine {
 
     fun removeTrack(uid: Int) = nativeRemoveTrack(uid)
 
+    /**
+     * Copie du mix final pour le groupe d'enceintes (§2.7). Renvoie l'index de la première image
+     * copiée ; à appeler depuis le thread qui lira ensuite la copie ([readTap]).
+     */
+    fun setTapEnabled(enabled: Boolean): Long = nativeSetTapEnabled(enabled)
+
+    /** Lit le mix copié (stéréo entrelacé 16 bits) ; renvoie le nombre d'échantillons lus. */
+    fun readTap(out: ShortArray): Int = nativeReadTap(out)
+
+    /**
+     * Horloge de la copie : [TapClock.timeNs] (System.nanoTime) est l'instant où l'image numéro
+     * [TapClock.frames] sort du téléphone ; les images suivantes s'en déduisent à 48 kHz.
+     */
+    fun tapClock(): TapClock = LongArray(2).also(::nativeTapClock).let { TapClock(it[0], it[1]) }
+
+    /** Retarde le son local pour qu'il sorte en même temps que celui des enceintes. */
+    fun setOutputDelayMs(ms: Int) = nativeSetOutputDelayMs(ms)
+
+    data class TapClock(val timeNs: Long, val frames: Long)
+
     private external fun nativeStart(): Boolean
     private external fun nativeStop()
     private external fun nativeWrite(uid: Int, samples: ShortArray, count: Int)
@@ -49,4 +69,8 @@ object NativeMixerEngine {
         room: Int,
     )
     private external fun nativeRemoveTrack(uid: Int)
+    private external fun nativeSetTapEnabled(enabled: Boolean): Long
+    private external fun nativeReadTap(out: ShortArray): Int
+    private external fun nativeTapClock(out: LongArray)
+    private external fun nativeSetOutputDelayMs(ms: Int)
 }

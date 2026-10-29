@@ -3,6 +3,7 @@
 #include <oboe/Oboe.h>
 
 #include <array>
+#include <cstdint>
 #include <atomic>
 #include <memory>
 #include <mutex>
@@ -28,6 +29,17 @@ public:
     void setGains(int uid, int leftPercent, int rightPercent);
     // Réglages du mix final ; appelé hors du thread audio.
     void setEffects(const dsp::EffectsParams& params);
+
+    // Groupe d'enceintes (§2.7). Le mix final est copié dans une file lue par l'émetteur réseau,
+    // et le son local est retardé du même délai de lecture que les enceintes pour rester aligné.
+    // Renvoie l'index de la première image qui sera copiée : l'émetteur, seul lecteur de la file,
+    // l'appelle avant de lire et compte ensuite les images lues à partir de cet index.
+    int64_t setTapEnabled(bool enabled);
+    // Lit au plus maxSamples échantillons (stéréo entrelacé) ; renvoie le nombre lu.
+    int readTap(int16_t* out, int maxSamples);
+    // Horloge de la file : instant monotone (ns) où l'image d'index framesAtTime sort du téléphone.
+    void tapClock(int64_t* timeNs, int64_t* framesAtTime);
+    void setOutputDelayMs(int ms);
     void removeTrack(int uid);
 
     oboe::DataCallbackResult onAudioReady(oboe::AudioStream* stream, void* audioData,
@@ -67,4 +79,18 @@ private:
     std::atomic<int> effectsVersion_{0};
     int appliedEffectsVersion_ = -1;
     dsp::EffectsChain effects_;
+
+    static constexpr int kMaxDelayFrames = kSampleRate;  // 1 s.
+    std::atomic<bool> tapEnabled_{false};
+    SpscRingBuffer<int16_t> tap_{kSampleRate * kChannels};  // 1 s de marge pour l'émetteur.
+    // Horloge de la file, publiée par le callback : un compteur de séquence (pair = stable) protège
+    // la lecture des deux valeurs sans verrou.
+    std::atomic<uint32_t> tapClockSeq_{0};
+    std::atomic<int64_t> tapTimeNs_{0};
+    std::atomic<int64_t> tapFrames_{0};
+    // Images réellement écrites dans la file ; n'avance pas quand la copie est coupée.
+    std::atomic<int64_t> tapFramesWritten_{0};
+    std::atomic<int> delayFrames_{0};
+    std::array<float, kMaxDelayFrames * kChannels> delayLine_{};
+    size_t delayPos_ = 0;  // Callback seulement.
 };

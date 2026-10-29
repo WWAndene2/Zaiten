@@ -1,11 +1,16 @@
 package com.zaiten.mixer
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -16,6 +21,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import com.zaiten.mixer.features.effects.EffectsScreen
 import com.zaiten.mixer.features.mediasync.MediaSyncScreen
+import com.zaiten.mixer.features.multidevice.SpeakersScreen
+import com.zaiten.mixer.shared.Dimens
 import com.zaiten.mixer.features.mixer.MixerScreen
 import com.zaiten.mixer.features.presets.PresetsScreen
 import com.zaiten.mixer.features.routing.RoutingScreen
@@ -57,8 +64,21 @@ fun AppShell(capturing: Boolean, onStartCapture: () -> Unit) {
                 Tab.EFFECTS -> EffectsScreen()
                 Tab.SPATIAL -> SpatialScreen()
                 Tab.PRESETS -> PresetsScreen()
-                Tab.SYNC -> MediaSyncScreen()
+                Tab.SYNC -> SyncTab()
             }
         }
+    }
+}
+
+/** Onglet Synchro : média vers une TV ou console (étape 9) et groupe d'enceintes (étape 10). */
+@Composable
+private fun SyncTab() {
+    var speakers by rememberSaveable { mutableStateOf(false) }
+    Column {
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(horizontal = Dimens.Gutter, vertical = Dimens.Gap)) {
+            SegmentedButton(selected = !speakers, onClick = { speakers = false }, shape = SegmentedButtonDefaults.itemShape(0, 2)) { Text("Média") }
+            SegmentedButton(selected = speakers, onClick = { speakers = true }, shape = SegmentedButtonDefaults.itemShape(1, 2)) { Text("Enceintes") }
+        }
+        if (speakers) SpeakersScreen() else MediaSyncScreen()
     }
 }

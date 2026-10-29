@@ -3,6 +3,7 @@
 #include <android/log.h>
 
 #include <algorithm>
+#include <ctime>
 
 #include "Dsp.h"
 
@@ -101,7 +102,40 @@ void MixerEngine::removeTrack(int uid) {
     if (Track* t = find(uid)) t->active.store(false);
 }
 
-oboe::DataCallbackResult MixerEngine::onAudioReady(oboe::AudioStream*, void* audioData,
+int64_t MixerEngine::setTapEnabled(bool enabled) {
+    if (!enabled) {
+        tapEnabled_.store(false);
+        return tapFramesWritten_.load();
+    }
+    // Copie coupée : le callback n'écrit pas, le compteur est figé. On vide la file (rôle de lecteur,
+    // tenu par l'appelant), on relève l'index, puis on active.
+    tapEnabled_.store(false);
+    tap_.skip(tap_.size());
+    int64_t start = tapFramesWritten_.load();
+    tapEnabled_.store(true);
+    return start;
+}
+
+int MixerEngine::readTap(int16_t* out, int maxSamples) {
+    return static_cast<int>(tap_.read(out, static_cast<size_t>(maxSamples)));
+}
+
+void MixerEngine::tapClock(int64_t* timeNs, int64_t* framesAtTime) {
+    uint32_t before, after;
+    do {
+        before = tapClockSeq_.load(std::memory_order_acquire);
+        *timeNs = tapTimeNs_.load(std::memory_order_relaxed);
+        *framesAtTime = tapFrames_.load(std::memory_order_relaxed);
+        after = tapClockSeq_.load(std::memory_order_acquire);
+    } while (before != after || (before & 1u));
+}
+
+void MixerEngine::setOutputDelayMs(int ms) {
+    int frames = ms * kSampleRate / 1000;
+    delayFrames_.store(std::clamp(frames, 0, kMaxDelayFrames - 1));
+}
+
+oboe::DataCallbackResult MixerEngine::onAudioReady(oboe::AudioStream* stream, void* audioData,
                                                    int32_t numFrames) {
     auto* out = static_cast<float*>(audioData);
     const size_t samples = static_cast<size_t>(numFrames) * kChannels;
@@ -143,5 +177,41 @@ oboe::DataCallbackResult MixerEngine::onAudioReady(oboe::AudioStream*, void* aud
         effectsMutex_.unlock();
     }
     effects_.process(out, numFrames);
+
+    if (tapEnabled_.load(std::memory_order_relaxed)) {
+        // Instant de sortie de cette image : maintenant + latence de sortie annoncée par Oboe, plus
+        // le retard volontaire appliqué juste après. Les enceintes visent ce même instant.
+        timespec ts{};
+        clock_gettime(CLOCK_MONOTONIC, &ts);
+        int64_t nowNs = static_cast<int64_t>(ts.tv_sec) * 1000000000LL + ts.tv_nsec;
+        auto latency = stream ? stream->calculateLatencyMillis() : oboe::ResultWithValue<double>(0.0);
+        double latencyMs = latency ? latency.value() : 0.0;
+        int64_t playNs = nowNs + static_cast<int64_t>(latencyMs * 1e6) +
+                         static_cast<int64_t>(delayFrames_.load()) * 1000000000LL / kSampleRate;
+        tapClockSeq_.fetch_add(1, std::memory_order_acq_rel);  // Impair : écriture en cours.
+        tapTimeNs_.store(playNs, std::memory_order_relaxed);
+        const int64_t framesBefore = tapFramesWritten_.load(std::memory_order_relaxed);
+        tapFrames_.store(framesBefore, std::memory_order_relaxed);
+        tapClockSeq_.fetch_add(1, std::memory_order_acq_rel);  // Pair : stable.
+        size_t written = 0;
+        for (size_t i = 0; i < samples; i += scratch_.size()) {
+            size_t n = std::min(scratch_.size(), samples - i);
+            for (size_t j = 0; j < n; ++j) scratch_[j] = static_cast<int16_t>(out[i + j] * 32767.0f);
+            written += tap_.write(scratch_.data(), n);  // File pleine (émetteur bloqué) : excédent perdu.
+        }
+        tapFramesWritten_.store(framesBefore + static_cast<int64_t>(written / kChannels), std::memory_order_release);
+    }
+
+    const int delay = delayFrames_.load(std::memory_order_relaxed);
+    if (delay > 0) {
+        const size_t lineSamples = delayLine_.size();
+        for (size_t i = 0; i < samples; ++i) {
+            size_t readPos = (delayPos_ + lineSamples - static_cast<size_t>(delay) * kChannels) % lineSamples;
+            float delayed = delayLine_[readPos];
+            delayLine_[delayPos_] = out[i];
+            out[i] = delayed;
+            delayPos_ = (delayPos_ + 1) % lineSamples;
+        }
+    }
     return oboe::DataCallbackResult::Continue;
 }

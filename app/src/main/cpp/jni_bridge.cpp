@@ -54,4 +54,33 @@ Java_com_zaiten_mixer_core_engine_NativeMixerEngine_nativeRemoveTrack(JNIEnv*, j
     engine.removeTrack(uid);
 }
 
+JNIEXPORT jlong JNICALL
+Java_com_zaiten_mixer_core_engine_NativeMixerEngine_nativeSetTapEnabled(JNIEnv*, jobject, jboolean enabled) {
+    return engine.setTapEnabled(enabled);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_zaiten_mixer_core_engine_NativeMixerEngine_nativeReadTap(JNIEnv* env, jobject, jshortArray out) {
+    jsize size = env->GetArrayLength(out);
+    jshort* data = env->GetShortArrayElements(out, nullptr);
+    int read = engine.readTap(data, size);
+    env->ReleaseShortArrayElements(out, data, 0);
+    return read;
+}
+
+JNIEXPORT void JNICALL
+Java_com_zaiten_mixer_core_engine_NativeMixerEngine_nativeTapClock(JNIEnv* env, jobject, jlongArray out) {
+    jlong values[2];
+    int64_t timeNs, frames;
+    engine.tapClock(&timeNs, &frames);
+    values[0] = timeNs;
+    values[1] = frames;
+    env->SetLongArrayRegion(out, 0, 2, values);
+}
+
+JNIEXPORT void JNICALL
+Java_com_zaiten_mixer_core_engine_NativeMixerEngine_nativeSetOutputDelayMs(JNIEnv*, jobject, jint ms) {
+    engine.setOutputDelayMs(ms);
+}
+
 }  // extern "C"
