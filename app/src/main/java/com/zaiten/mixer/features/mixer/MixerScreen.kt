@@ -61,6 +61,13 @@ fun MixerScreen(capturing: Boolean, onStartCapture: () -> Unit) {
             Text("Mixeur", style = MaterialTheme.typography.headlineMedium)
             if (!capturing) {
                 Button(onClick = onStartCapture) { Text("Démarrer la capture") }
+                // Android 14+ propose « Une seule appli » ou « Écran entier » : une seule appli
+                // limiterait la capture à celle-ci, alors que le mixeur doit entendre toutes les applis.
+                Text(
+                    "Android demande l'autorisation une fois par session. Choisissez « Écran entier » : " +
+                        "elle couvre alors toutes les applis jusqu'à l'arrêt de la capture.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
             }
             SessionAccessPrompt()
             if (capturing) OriginalSoundNotice()

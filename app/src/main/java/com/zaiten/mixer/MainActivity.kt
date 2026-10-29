@@ -10,19 +10,17 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import com.zaiten.mixer.core.capture.AudioCaptureService
 
 class MainActivity : ComponentActivity() {
-    private val capturing = mutableStateOf(false)
-
     // Le système redemande l'autorisation de capture à chaque session (§5).
     private val projectionRequest =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             val data = result.data
             if (result.resultCode == Activity.RESULT_OK && data != null) {
                 AudioCaptureService.start(this, data)
-                capturing.value = true
             }
         }
 
@@ -38,7 +36,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme(colorScheme = darkColorScheme()) {
-                AppShell(capturing = capturing.value, onStartCapture = ::requestCapture)
+                val capturing by AudioCaptureService.running.collectAsState()
+                AppShell(capturing = capturing, onStartCapture = ::requestCapture)
             }
         }
     }
@@ -46,7 +45,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         // L'accès aux notifications s'accorde hors de l'appli : on relance la détection au retour.
-        if (capturing.value) AudioCaptureService.refreshSessions(this)
+        if (AudioCaptureService.running.value) AudioCaptureService.refreshSessions(this)
     }
 
     private fun requestCapture() {

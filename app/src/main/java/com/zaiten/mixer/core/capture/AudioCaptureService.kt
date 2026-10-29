@@ -20,6 +20,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -49,6 +51,7 @@ class AudioCaptureService : Service() {
         if (projection == null && resultData != null) {
             val manager = getSystemService(MediaProjectionManager::class.java)
             projection = manager.getMediaProjection(Activity.RESULT_OK, resultData)
+            _running.value = true
             NativeMixerEngine.start()
             observeEffects()
             observeTracks()
@@ -102,6 +105,7 @@ class AudioCaptureService : Service() {
     }
 
     override fun onDestroy() {
+        _running.value = false
         sessionWatcher?.stop()
         originalMuter?.restore()
         synchronized(this) { captures.values.forEach { it.stop() }; captures.clear() }
@@ -112,6 +116,14 @@ class AudioCaptureService : Service() {
     }
 
     companion object {
+        /**
+         * Capture en cours : vit avec le service, pas avec l'écran. Un écran recréé (rotation, retour
+         * dans l'appli) ne doit pas proposer de redémarrer une capture qui tourne déjà, ce qui
+         * redemanderait l'autorisation d'Android pour rien.
+         */
+        private val _running = MutableStateFlow(false)
+        val running: StateFlow<Boolean> = _running
+
         private const val EXTRA_DATA = "projection_data"
 
         private const val ACTION_REFRESH_SESSIONS = "com.zaiten.mixer.REFRESH_SESSIONS"
