@@ -13,5 +13,5 @@ data class AppTrack(
 /** Volume réellement appliqué en tenant compte de muet, solo (§2.1) et du volume maître. */
 fun AppTrack.effectivePercent(anySolo: Boolean, masterPercent: Int): Int {
     if (muted || (anySolo && !solo)) return 0
-    return GainProcessor.clampPercent(volumePercent * masterPercent / 100)
+    return VolumeRange.clamp(volumePercent * masterPercent / 100)
 }

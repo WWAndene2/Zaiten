@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.zaiten.mixer.core.capture.ActiveSessionWatcher
 import com.zaiten.mixer.core.mixer.AppTrack
-import com.zaiten.mixer.core.mixer.GainProcessor
+import com.zaiten.mixer.core.mixer.VolumeRange
 import com.zaiten.mixer.core.mixer.MixerRepository
 import com.zaiten.mixer.core.mixer.OriginalSoundMode
 
@@ -76,14 +76,14 @@ private fun PercentSlider(label: String, percent: Int, onChange: (Int) -> Unit) 
     Column {
         Row {
             Text(label, modifier = Modifier.weight(1f))
-            Text("$percent %", color = if (percent > GainProcessor.WARNING_PERCENT) Color(0xFFFFB4AB) else Color.Unspecified)
+            Text("$percent %", color = if (percent > VolumeRange.WARNING_PERCENT) Color(0xFFFFB4AB) else Color.Unspecified)
         }
         Slider(
             value = percent.toFloat(),
             onValueChange = { onChange(it.toInt()) },
-            valueRange = GainProcessor.MIN_PERCENT.toFloat()..GainProcessor.MAX_PERCENT.toFloat(),
+            valueRange = VolumeRange.MIN_PERCENT.toFloat()..VolumeRange.MAX_PERCENT.toFloat(),
         )
-        if (percent > GainProcessor.WARNING_PERCENT) {
+        if (percent > VolumeRange.WARNING_PERCENT) {
             Text("Au-delà de 150 % : risque pour l'audition", style = MaterialTheme.typography.bodySmall)
         }
     }
@@ -102,7 +102,7 @@ private fun TrackStrip(track: AppTrack) {
             Slider(
                 value = track.volumePercent.toFloat(),
                 onValueChange = { MixerRepository.setVolume(track.uid, it.toInt()) },
-                valueRange = GainProcessor.MIN_PERCENT.toFloat()..GainProcessor.MAX_PERCENT.toFloat(),
+                valueRange = VolumeRange.MIN_PERCENT.toFloat()..VolumeRange.MAX_PERCENT.toFloat(),
             )
             Row(horizontalArrangement = Arrangement.spacedBy(Gap / 2)) {
                 FilterChip(selected = track.muted, onClick = { MixerRepository.toggleMute(track.uid) }, label = { Text("M") })

@@ -15,6 +15,7 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.content.IntentCompat
 import com.zaiten.mixer.R
+import com.zaiten.mixer.core.engine.NativeMixerEngine
 import com.zaiten.mixer.core.mixer.MixerRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -43,6 +44,7 @@ class AudioCaptureService : Service() {
         if (projection == null && resultData != null) {
             val manager = getSystemService(MediaProjectionManager::class.java)
             projection = manager.getMediaProjection(Activity.RESULT_OK, resultData)
+            NativeMixerEngine.start()
             observeTracks()
             sessionWatcher = ActiveSessionWatcher(this).also { it.start() }
             val muter = OriginalMuter(getSystemService(AudioManager::class.java), ::lastSoundAt)
@@ -92,6 +94,7 @@ class AudioCaptureService : Service() {
         originalMuter?.restore()
         synchronized(this) { captures.values.forEach { it.stop() }; captures.clear() }
         projection?.stop()
+        NativeMixerEngine.stop()
         scope.cancel()
         super.onDestroy()
     }

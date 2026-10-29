@@ -11,7 +11,7 @@ import kotlinx.coroutines.delay
  *
  * Principe : la capture (sous-mix distant) est prise avant le volume du flux média ; on coupe donc
  * le volume média, ce qui tait les originaux tandis que la capture continue, et la copie réglée est
- * rejouée sur un flux indépendant (AppCaptureTrack.REPLAY_USAGE).
+ * rejouée sur un flux indépendant (voir MixerEngine::start côté natif).
  *
  * Ce comportement n'est pas garanti par la documentation Android : il est vérifié à l'exécution.
  * Au premier son capturé, on coupe le média puis on regarde si la capture entend encore quelque

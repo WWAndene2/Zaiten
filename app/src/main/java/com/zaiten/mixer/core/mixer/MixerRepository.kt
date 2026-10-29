@@ -24,13 +24,13 @@ object MixerRepository {
     fun removeTrack(uid: Int) = _tracks.update { list -> list.filterNot { it.uid == uid } }
 
     fun setVolume(uid: Int, percent: Int) =
-        edit(uid) { it.copy(volumePercent = GainProcessor.clampPercent(percent)) }
+        edit(uid) { it.copy(volumePercent = VolumeRange.clamp(percent)) }
 
     fun toggleMute(uid: Int) = edit(uid) { it.copy(muted = !it.muted) }
 
     fun toggleSolo(uid: Int) = edit(uid) { it.copy(solo = !it.solo) }
 
-    fun setMaster(percent: Int) { _masterPercent.value = GainProcessor.clampPercent(percent) }
+    fun setMaster(percent: Int) { _masterPercent.value = VolumeRange.clamp(percent) }
 
     /** Volume à appliquer à la piste [uid] à cet instant (lu par le thread audio). */
     fun currentPercent(uid: Int): Int {
