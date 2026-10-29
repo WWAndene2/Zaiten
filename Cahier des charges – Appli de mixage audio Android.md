@@ -46,6 +46,20 @@ Une appli Android qui contrôle en direct le son de plusieurs applis à la fois 
 - Tuiles de réglages rapides.
 - Widget pour l'écran d'accueil.
 
+### 2.7 Système multi-appareils : enceintes et barre de son
+
+Plusieurs appareils synchronisés forment un seul équipement stéréo ou home cinéma.
+
+- **Rôles** : un appareil source capte et mixe le son (§2.1), les autres reçoivent chacun leur canal et le jouent.
+- **Configurations** : stéréo (G + D), barre de son (G + centre + D), 2.1 (ajout d'un caisson), 5.1 (ajout des arrière). Chaque appareil reçoit un canal, ou les basses seules pour le caisson.
+- **Appareils compatibles** : téléphones et tablettes avec l'appli, plus les enceintes Wi-Fi et Cast quand leur protocole le permet.
+- **Synchronisation** : horloge commune entre appareils sur le Wi-Fi local, avec un écart visé sous 5 ms entre enceintes (au-delà, la stéréo se déforme).
+- **Calibrage** : le micro de la source écoute chaque enceinte pour régler son décalage et son volume, avec un réglage manuel en complément.
+- **Placement** : position de chaque appareil dans la pièce (gauche, droite, distance) pour compenser les écarts de distance.
+- **Upmix** : un contenu stéréo est réparti sur le centre et l'arrière, avec le même upmix que la spatialisation (§3.1).
+- **Tolérance** : un appareil qui se déconnecte voit son canal reporté sur les autres, sans couper le son.
+- Point de vigilance : la synchronisation fine sur Wi-Fi est délicate, à valider avec un prototype à deux téléphones avant le reste.
+
 ## 3. Spatialisation : binaural et 3D virtuelle
 
 ### 3.1 Principe
@@ -148,7 +162,8 @@ Ordre d'implémentation : chaque étape ne dépend que des précédentes.
 7. **Chaîne de traitement et presets** : égaliseur, compresseur, limiteur, presets (§2.4, §7.2, §7.4).
 8. **Spatialisation 3D** (§3) : se branche à son étage de la chaîne.
 9. **Son simultané Cast et casque** (§2.3) : la plus risquée, sur un moteur et une chaîne déjà éprouvés.
-10. **Fonctions bonus** (§4).
+10. **Système multi-appareils** (§2.7) : réutilise le calage de décalage de l'étape 9 et l'upmix de l'étape 8.
+11. **Fonctions bonus** (§4).
 
 ## 7. Gestion du son en détail
 
@@ -201,7 +216,7 @@ Tous les presets sont modifiables et peuvent servir de base à un preset personn
 - **Volume perçu égalisé entre applis** : mesure LUFS en continu pour que toutes les applis sonnent au même niveau.
 - **Correction selon l'ajustement du casque** : le micro des écouteurs détecte un embout mal placé et compense la perte de basses.
 - **Mixage contextuel par IA** : l'appli apprend les habitudes de l'utilisateur et propose ou applique les réglages correspondants.
-- **Enceintes multiples synchronisées** : plusieurs téléphones ou enceintes utilisés comme un système surround.
+- **Enceintes multiples synchronisées** : plusieurs téléphones ou enceintes utilisés comme un système surround (détaillé au §2.7).
 - **Profils partagés entre appareils** : réglages synchronisés entre téléphone, tablette et PC.
 - **Égaliseur selon la pièce** : analyse de l'écho par le micro et correction du son du haut-parleur ou de l'enceinte.
 - **Mode « bulle sonore »** : plusieurs personnes écoutent la même vidéo sur leur propre casque, chacune avec sa langue, son volume et ses réglages.
