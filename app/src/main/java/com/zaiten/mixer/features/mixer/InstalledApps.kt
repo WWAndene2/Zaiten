@@ -5,10 +5,10 @@ import android.content.Intent
 import com.zaiten.mixer.core.mixer.AppTrack
 
 /**
- * Applis lançables proposées à l'ajout dans le mixeur.
+ * Applis lançables proposées à l'ajout manuel dans le mixeur.
  *
- * L'API publique ne donne pas l'UID des applis en cours de lecture
- * (AudioPlaybackConfiguration le masque), d'où le choix manuel dans la liste installée.
+ * Complément de la détection automatique (ActiveSessionWatcher), pour les applis qui jouent
+ * du son sans publier de session média, comme beaucoup de jeux.
  */
 fun loadLaunchableApps(context: Context): List<AppTrack> {
     val pm = context.packageManager

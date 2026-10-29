@@ -1,5 +1,7 @@
 package com.zaiten.mixer.features.mixer
 
+import android.content.Intent
+import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -30,6 +32,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
+import com.zaiten.mixer.core.capture.ActiveSessionWatcher
 import com.zaiten.mixer.core.mixer.AppTrack
 import com.zaiten.mixer.core.mixer.GainProcessor
 import com.zaiten.mixer.core.mixer.MixerRepository
@@ -51,6 +55,7 @@ fun MixerScreen(capturing: Boolean, onStartCapture: () -> Unit) {
             if (!capturing) {
                 Button(onClick = onStartCapture) { Text("Démarrer la capture") }
             }
+            SessionAccessPrompt()
             PercentSlider(label = "Volume maître", percent = master, onChange = MixerRepository::setMaster)
             Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                 Text("Applis actives", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
@@ -124,4 +129,26 @@ private fun AppPickerDialog(onDismiss: () -> Unit) {
             }
         },
     )
+}
+
+/** Propose l'accès aux notifications, sans lequel les applis qui jouent ne sont pas détectées. */
+@Composable
+private fun SessionAccessPrompt() {
+    val context = LocalContext.current
+    var granted by remember { mutableStateOf(ActiveSessionWatcher.hasAccess(context)) }
+    LifecycleResumeEffect(Unit) {
+        granted = ActiveSessionWatcher.hasAccess(context)
+        onPauseOrDispose { }
+    }
+    if (granted) return
+    Column(verticalArrangement = Arrangement.spacedBy(Gap)) {
+        Text(
+            "Autorisez l'accès aux notifications pour ajouter automatiquement les applis qui jouent du son. " +
+                "Relancez ensuite la capture.",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        TextButton(onClick = {
+            context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+        }) { Text("Autoriser") }
+    }
 }

@@ -31,6 +31,7 @@ class AudioCaptureService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var projection: MediaProjection? = null
     private val captures = mutableMapOf<Int, AppCaptureTrack>()
+    private var sessionWatcher: ActiveSessionWatcher? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -41,6 +42,7 @@ class AudioCaptureService : Service() {
             val manager = getSystemService(MediaProjectionManager::class.java)
             projection = manager.getMediaProjection(Activity.RESULT_OK, resultData)
             observeTracks()
+            sessionWatcher = ActiveSessionWatcher(this).also { it.start() }
         }
         return START_NOT_STICKY
     }
@@ -78,6 +80,7 @@ class AudioCaptureService : Service() {
     }
 
     override fun onDestroy() {
+        sessionWatcher?.stop()
         synchronized(this) { captures.values.forEach { it.stop() }; captures.clear() }
         projection?.stop()
         scope.cancel()
